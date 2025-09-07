@@ -1,0 +1,40 @@
+# Compiled class files
+*.class
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE files
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# 🔒 SECURITY - Credentials files
+application-supabase.yml
+application-local.yml
+.env
+.env.local
+.env.production
+*.credentials
+supabase-config.txt
+
+# Logs
+logs/
+*.log
+spring.log
+
+# Temporary files
+tmp/
+temp/
+uploads/
+pgf-uploads/
