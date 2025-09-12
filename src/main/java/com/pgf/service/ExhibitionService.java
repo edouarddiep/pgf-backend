@@ -23,7 +23,7 @@ public class ExhibitionService {
 
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findAll() {
-        return exhibitionRepository.findAll()
+        return exhibitionRepository.findAllByOrderByStartDateDesc()
                 .stream()
                 .map(exhibitionMapper::toDto)
                 .toList();
@@ -38,7 +38,7 @@ public class ExhibitionService {
 
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findUpcoming() {
-        return exhibitionRepository.findUpcomingExhibitions()
+        return exhibitionRepository.findByStartDateAfterOrderByStartDateAsc(LocalDate.now())
                 .stream()
                 .map(exhibitionMapper::toDto)
                 .toList();
@@ -46,7 +46,16 @@ public class ExhibitionService {
 
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findPast() {
-        return exhibitionRepository.findPastExhibitions()
+        return exhibitionRepository.findByEndDateBeforeOrderByStartDateDesc(LocalDate.now())
+                .stream()
+                .map(exhibitionMapper::toDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExhibitionDto> findOngoing() {
+        LocalDate now = LocalDate.now();
+        return exhibitionRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(now, now)
                 .stream()
                 .map(exhibitionMapper::toDto)
                 .toList();
@@ -54,13 +63,19 @@ public class ExhibitionService {
 
     @Transactional(readOnly = true)
     public Optional<ExhibitionDto> findNextFeatured() {
-        return exhibitionRepository.findNextFeaturedExhibition()
+        return exhibitionRepository.findFirstByIsFeaturedTrueAndStartDateAfterOrderByStartDateAsc(LocalDate.now())
                 .map(exhibitionMapper::toDto);
     }
 
     @Transactional(readOnly = true)
-    public List<ExhibitionDto> findOngoing() {
-        return exhibitionRepository.findOngoingExhibitions(LocalDate.now())
+    public Optional<ExhibitionDto> findFeaturedExhibition() {
+        return exhibitionRepository.findFirstByIsFeaturedTrueAndStartDateAfterOrderByStartDateAsc(LocalDate.now())
+                .map(exhibitionMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExhibitionDto> findPastExhibitions() {
+        return exhibitionRepository.findByEndDateBeforeOrderByStartDateDesc(LocalDate.now())
                 .stream()
                 .map(exhibitionMapper::toDto)
                 .toList();
