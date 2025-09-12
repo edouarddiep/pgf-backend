@@ -16,77 +16,89 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContactMessageService {
 
-    private final ContactMessageRepository messageRepository;
-    private final ContactMessageMapper messageMapper;
+    private final ContactMessageRepository contactMessageRepository;
+    private final ContactMessageMapper contactMessageMapper;
 
     @Transactional(readOnly = true)
     public List<ContactMessageDto> findAll() {
-        return messageRepository.findAllByOrderByCreatedAtDesc()
+        return contactMessageRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(messageMapper::toDto)
+                .map(contactMessageMapper::toDto)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ContactMessageDto findById(Long id) {
-        ContactMessage message = messageRepository.findById(id)
+        ContactMessage message = contactMessageRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + id));
-        return messageMapper.toDto(message);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ContactMessageDto> findByStatus(ContactMessage.MessageStatus status) {
-        return messageRepository.findByStatusOrderByCreatedAtDesc(status)
-                .stream()
-                .map(messageMapper::toDto)
-                .toList();
+        return contactMessageMapper.toDto(message);
     }
 
     @Transactional(readOnly = true)
     public List<ContactMessageDto> findUnread() {
-        return messageRepository.findByIsReadFalseOrderByCreatedAtDesc()
+        return contactMessageRepository.findByIsReadFalseOrderByCreatedAtDesc()
                 .stream()
-                .map(messageMapper::toDto)
+                .map(contactMessageMapper::toDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContactMessageDto> findUnreadMessages() {
+        return contactMessageRepository.findByIsReadFalseOrderByCreatedAtDesc()
+                .stream()
+                .map(contactMessageMapper::toDto)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public long countUnread() {
-        return messageRepository.countUnreadMessages();
+        return contactMessageRepository.countByIsReadFalse();
+    }
+
+    @Transactional(readOnly = true)
+    public Long countUnreadMessages() {
+        return contactMessageRepository.countByIsReadFalse();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContactMessageDto> findByStatus(ContactMessage.MessageStatus status) {
+        return contactMessageRepository.findByStatusOrderByCreatedAtDesc(status)
+                .stream()
+                .map(contactMessageMapper::toDto)
+                .toList();
     }
 
     public ContactMessageDto create(ContactMessageDto messageDto) {
-        ContactMessage message = messageMapper.toEntity(messageDto);
-        ContactMessage savedMessage = messageRepository.save(message);
-        return messageMapper.toDto(savedMessage);
+        ContactMessage message = contactMessageMapper.toEntity(messageDto);
+        message.setIsRead(false);
+        message.setStatus(ContactMessage.MessageStatus.NEW);
+        ContactMessage savedMessage = contactMessageRepository.save(message);
+        return contactMessageMapper.toDto(savedMessage);
     }
 
     public ContactMessageDto markAsRead(Long id) {
-        ContactMessage message = messageRepository.findById(id)
+        ContactMessage message = contactMessageRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + id));
-
         message.setIsRead(true);
         if (message.getStatus() == ContactMessage.MessageStatus.NEW) {
             message.setStatus(ContactMessage.MessageStatus.READ);
         }
-
-        ContactMessage updatedMessage = messageRepository.save(message);
-        return messageMapper.toDto(updatedMessage);
+        ContactMessage updatedMessage = contactMessageRepository.save(message);
+        return contactMessageMapper.toDto(updatedMessage);
     }
 
     public ContactMessageDto updateStatus(Long id, ContactMessage.MessageStatus status) {
-        ContactMessage message = messageRepository.findById(id)
+        ContactMessage message = contactMessageRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + id));
-
         message.setStatus(status);
-        ContactMessage updatedMessage = messageRepository.save(message);
-        return messageMapper.toDto(updatedMessage);
+        ContactMessage updatedMessage = contactMessageRepository.save(message);
+        return contactMessageMapper.toDto(updatedMessage);
     }
 
     public void delete(Long id) {
-        if (!messageRepository.existsById(id)) {
+        if (!contactMessageRepository.existsById(id)) {
             throw new EntityNotFoundException("Message not found with id: " + id);
         }
-        messageRepository.deleteById(id);
+        contactMessageRepository.deleteById(id);
     }
 }

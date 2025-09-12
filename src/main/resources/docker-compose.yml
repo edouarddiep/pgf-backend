@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  pgf-backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Profil Supabase
+      - SPRING_PROFILES_ACTIVE=supabase
+
+      # Configuration Supabase (depuis ton .env.production ou variables)
+      - SUPABASE_DATABASE_URL=jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require
+      - SUPABASE_DB_USERNAME=postgres
+      - SUPABASE_DB_PASSWORD=BcxnBstrBYr6Tx92
+      - SUPABASE_URL=https://bhjpavcxhymxcadesnqy.supabase.co
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+
+      # Configuration admin
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-pgf-2025}
+
+      # Configuration uploads
+      - UPLOAD_DIR=/app/pgf-uploads
+      - UPLOAD_BASE_URL=http://localhost:8080/api/images
+
+    volumes:
+      # Persistance des images uploadées
+      - pgf_uploads:/app/pgf-uploads
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgf_uploads:

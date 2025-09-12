@@ -32,35 +32,36 @@ public class ExhibitionController {
     @GetMapping("/{id}")
     @Operation(summary = "Get exhibition by ID")
     public ResponseEntity<ExhibitionDto> getExhibitionById(@PathVariable Long id) {
-        ExhibitionDto exhibition = exhibitionService.findById(id);
-        return ResponseEntity.ok(exhibition);
+        Optional<ExhibitionDto> exhibition = exhibitionService.findById(id);
+        return exhibition.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/upcoming")
     @Operation(summary = "Get upcoming exhibitions")
     public ResponseEntity<List<ExhibitionDto>> getUpcomingExhibitions() {
-        List<ExhibitionDto> exhibitions = exhibitionService.findUpcoming();
+        List<ExhibitionDto> exhibitions = exhibitionService.findUpcomingExhibitions();
         return ResponseEntity.ok(exhibitions);
     }
 
     @GetMapping("/past")
     @Operation(summary = "Get past exhibitions")
     public ResponseEntity<List<ExhibitionDto>> getPastExhibitions() {
-        List<ExhibitionDto> exhibitions = exhibitionService.findPast();
+        List<ExhibitionDto> exhibitions = exhibitionService.findPastExhibitions();
         return ResponseEntity.ok(exhibitions);
     }
 
     @GetMapping("/ongoing")
     @Operation(summary = "Get ongoing exhibitions")
     public ResponseEntity<List<ExhibitionDto>> getOngoingExhibitions() {
-        List<ExhibitionDto> exhibitions = exhibitionService.findOngoing();
+        List<ExhibitionDto> exhibitions = exhibitionService.findOngoingExhibitions();
         return ResponseEntity.ok(exhibitions);
     }
 
     @GetMapping("/next-featured")
     @Operation(summary = "Get next featured exhibition")
     public ResponseEntity<ExhibitionDto> getNextFeaturedExhibition() {
-        Optional<ExhibitionDto> exhibition = exhibitionService.findNextFeatured();
+        Optional<ExhibitionDto> exhibition = exhibitionService.findFeaturedExhibition();
         return exhibition.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

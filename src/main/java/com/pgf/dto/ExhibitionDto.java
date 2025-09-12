@@ -18,6 +18,8 @@ public class ExhibitionDto {
 
     private String location;
 
+    private String address;
+
     private LocalDate startDate;
 
     private LocalDate endDate;

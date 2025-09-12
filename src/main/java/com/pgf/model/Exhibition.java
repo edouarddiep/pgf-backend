@@ -22,6 +22,9 @@ public class Exhibition extends BaseEntity {
     @Column(name = "location")
     private String location;
 
+    @Column(name = "address")
+    private String address;
+
     @Column(name = "start_date")
     private LocalDate startDate;
 

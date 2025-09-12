@@ -5,7 +5,6 @@ import com.pgf.dto.ArtworkCategoryDto;
 import com.pgf.dto.ArtworkDto;
 import com.pgf.dto.ContactMessageDto;
 import com.pgf.dto.ExhibitionDto;
-import com.pgf.model.ContactMessage;
 import com.pgf.model.Exhibition;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +16,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -82,11 +81,9 @@ class PgfIntegrationTest {
         ArtworkDto newArtwork = new ArtworkDto();
         newArtwork.setTitle("Test Artwork");
         newArtwork.setDescription("A beautiful test artwork");
-        newArtwork.setDimensions("30x40cm");
-        newArtwork.setMaterials("Oil on canvas");
-        newArtwork.setCreationDate(LocalDate.now());
-        newArtwork.setPrice(new BigDecimal("500.00"));
         newArtwork.setIsAvailable(true);
+        newArtwork.setImageUrls(List.of("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
+        newArtwork.setDisplayOrder(1);
         newArtwork.setCategoryId(1L); // Fils de fer
 
         mockMvc.perform(post("/api/artworks")
@@ -94,7 +91,9 @@ class PgfIntegrationTest {
                         .content(objectMapper.writeValueAsString(newArtwork)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Test Artwork"))
-                .andExpect(jsonPath("$.price").value(500.00));
+                .andExpect(jsonPath("$.isAvailable").value(true))
+                .andExpect(jsonPath("$.imageUrls").isArray())
+                .andExpect(jsonPath("$.imageUrls.length()").value(2));
     }
 
     @Test
@@ -208,33 +207,11 @@ class PgfIntegrationTest {
                 "fake image content".getBytes()
         );
 
-        mockMvc.perform(multipart("/api/upload/image")
+        mockMvc.perform(multipart("/api/admin/upload/image")
                         .file(file)
                         .param("category", "artworks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Image uploadée avec succès"))
-                .andExpect(jsonPath("$.imageUrl").exists())
-                .andExpect(jsonPath("$.fileName").value("test-image.jpg"));
-    }
-
-    @Test
-    void shouldUploadImageWithThumbnail() throws Exception {
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test-image.png",
-                "image/png",
-                "fake image content for thumbnail test".getBytes()
-        );
-
-        mockMvc.perform(multipart("/api/upload/image-with-thumbnail")
-                        .file(file)
-                        .param("category", "exhibitions"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Image et thumbnail uploadés avec succès"))
-                .andExpect(jsonPath("$.imageUrl").exists())
-                .andExpect(jsonPath("$.thumbnailUrl").exists())
-                .andExpect(jsonPath("$.fileName").exists())
-                .andExpect(jsonPath("$.fileSize").isNumber());
+                .andExpect(jsonPath("$.imageUrl").exists());
     }
 
     @Test
@@ -254,12 +231,28 @@ class PgfIntegrationTest {
     @Test
     void shouldValidateRequiredFieldsForNewArtwork() throws Exception {
         ArtworkDto invalidArtwork = new ArtworkDto();
-        // Pas de titre ni de categoryId
+        // Pas de titre, categoryId ou images
 
         mockMvc.perform(post("/api/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidArtwork)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldValidateMinimumOneImageForArtwork() throws Exception {
+        ArtworkDto artworkWithoutImages = new ArtworkDto();
+        artworkWithoutImages.setTitle("Test Artwork");
+        artworkWithoutImages.setDescription("Test description");
+        artworkWithoutImages.setCategoryId(1L);
+        artworkWithoutImages.setIsAvailable(true);
+        artworkWithoutImages.setImageUrls(List.of()); // Liste vide = invalide
+
+        mockMvc.perform(post("/api/artworks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(artworkWithoutImages)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details").exists());
     }
 
     @Test
@@ -271,5 +264,52 @@ class PgfIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidMessage)))
                 .andExpect(status().isBadRequest());
+    }
+
+    // Tests spécifiques pour les nouvelles fonctionnalités admin
+    @Test
+    void shouldLoginAsAdmin() throws Exception {
+        String loginRequest = "{\"password\":\"pgf-admin-2025\"}";
+
+        mockMvc.perform(post("/api/admin/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginRequest))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRejectInvalidAdminPassword() throws Exception {
+        String loginRequest = "{\"password\":\"wrong-password\"}";
+
+        mockMvc.perform(post("/api/admin/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginRequest))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldGetArtworksForAdmin() throws Exception {
+        mockMvc.perform(get("/api/admin/artworks"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void shouldCreateArtworkViaAdmin() throws Exception {
+        ArtworkDto newArtwork = new ArtworkDto();
+        newArtwork.setTitle("Admin Test Artwork");
+        newArtwork.setDescription("Created via admin endpoint");
+        newArtwork.setIsAvailable(true);
+        newArtwork.setImageUrls(List.of("https://example.com/admin-image.jpg"));
+        newArtwork.setDisplayOrder(1);
+        newArtwork.setCategoryId(1L);
+
+        mockMvc.perform(post("/api/admin/artworks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newArtwork)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Admin Test Artwork"))
+                .andExpect(jsonPath("$.isAvailable").value(true));
     }
 }

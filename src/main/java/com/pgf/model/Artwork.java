@@ -1,52 +1,50 @@
 package com.pgf.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "artworks")
 @Data
-@EqualsAndHashCode(callSuper = true, exclude = "category")
-@ToString(exclude = "category")
-public class Artwork extends BaseEntity {
+@EqualsAndHashCode(callSuper = false)
+public class Artwork {
 
-    @NotBlank
-    @Column(name = "title", nullable = false)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
     private String title;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "dimensions")
-    private String dimensions;
-
-    @Column(name = "materials")
-    private String materials;
-
-    @Column(name = "creation_date")
-    private LocalDate creationDate;
-
-    @Column(name = "price", precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @Column(name = "is_available")
+    @Column(nullable = false)
     private Boolean isAvailable = true;
 
+    @ElementCollection
+    @CollectionTable(name = "artwork_images", joinColumns = @JoinColumn(name = "artwork_id"))
     @Column(name = "image_url")
-    private String imageUrl;
+    private List<String> imageUrls;
 
-    @Column(name = "thumbnail_url")
-    private String thumbnailUrl;
-
-    @Column(name = "display_order")
-    private Integer displayOrder;
+    @Column
+    private Integer displayOrder = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private ArtworkCategory category;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }
