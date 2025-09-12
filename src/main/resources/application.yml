@@ -2,9 +2,9 @@ spring:
   application:
     name: pgf-backend
   datasource:
-    url: ${PGF_DB_URL:jdbc:postgresql://localhost:5432/pgf_db}
-    username: ${PGF_DB_USERNAME:pgf_user}
-    password: ${PGF_DB_PASSWORD:rescue}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pgf_db}
+    username: ${SPRING_DATASOURCE_USERNAME:pgf_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:rescue}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -24,7 +24,6 @@ spring:
       max-request-size: 10MB
       enabled: true
 
-# Configuration des uploads
 app:
   upload:
     dir: ${USER_HOME:${user.home}}/pgf-uploads
@@ -42,41 +41,31 @@ springdoc:
 logging:
   level:
     com.pgf: INFO
-    org.springframework.security: DEBUG
-    org.springframework.web.multipart: DEBUG
 
 ---
-# Profil pour Docker
+# Profil Supabase
 spring:
   config:
     activate:
-      on-profile: docker
+      on-profile: supabase
   datasource:
-    url: jdbc:postgresql://database:5432/yaya_db
-    username: yaya_user
-    password: yaya_password
-
-app:
-  upload:
-    dir: /app/uploads
-
----
-# Profil pour les tests
-spring:
-  config:
-    activate:
-      on-profile: test
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${SUPABASE_DATABASE_URL:jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require}
+    username: ${SUPABASE_DB_USERNAME:postgres}
+    password: ${SUPABASE_DB_PASSWORD:BcxnBstrBYr6Tx92}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
+    show-sql: false
   flyway:
-    enabled: false
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+supabase:
+  url: ${SUPABASE_URL:https://bhjpavcxhymxcadesnqy.supabase.co}
+  service-key: ${SUPABASE_SERVICE_KEY:}
 
 app:
   upload:
-    dir: ${java.io.tmpdir}/pgf-test-uploads
+    dir: ${java.io.tmpdir}/pgf-uploads
