@@ -9,7 +9,7 @@ services:
       # Profil Supabase
       - SPRING_PROFILES_ACTIVE=supabase
 
-      # Configuration Supabase (depuis ton .env.production ou variables)
+      # Configuration Supabase
       - SUPABASE_DATABASE_URL=jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require
       - SUPABASE_DB_USERNAME=postgres
       - SUPABASE_DB_PASSWORD=BcxnBstrBYr6Tx92
@@ -19,12 +19,13 @@ services:
       # Configuration admin
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-pgf-2025}
 
-      # Configuration uploads
+      # Configuration médias optimisée
+      - USE_SUPABASE_STORAGE=${USE_SUPABASE_STORAGE:-true}
       - UPLOAD_DIR=/app/pgf-uploads
-      - UPLOAD_BASE_URL=http://localhost:8080/api/images
+      - UPLOAD_BASE_URL=${UPLOAD_BASE_URL:-https://bhjpavcxhymxcadesnqy.supabase.co/storage/v1/object/public/artwork-images}
 
     volumes:
-      # Persistance des images uploadées
+      # Volume pour cache local et fallback
       - pgf_uploads:/app/pgf-uploads
 
     restart: unless-stopped

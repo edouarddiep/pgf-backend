@@ -1,50 +1,53 @@
 package com.pgf.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.ToString;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
 @Table(name = "artworks")
 @Data
-@EqualsAndHashCode(callSuper = false)
-public class Artwork {
+@EqualsAndHashCode(callSuper = true, exclude = "category")
+@ToString(exclude = "category")
+public class Artwork extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
+    @NotBlank
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(nullable = false)
+    @Column(name = "dimensions")
+    private String dimensions;
+
+    @Column(name = "materials")
+    private String materials;
+
+    @Column(name = "creation_date")
+    private LocalDate creationDate;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private BigDecimal price;
+
+    @NotNull
+    @Column(name = "is_available", nullable = false)
     private Boolean isAvailable = true;
 
-    @ElementCollection
-    @CollectionTable(name = "artwork_images", joinColumns = @JoinColumn(name = "artwork_id"))
-    @Column(name = "image_url")
+    @Column(name = "image_urls", columnDefinition = "TEXT[]")
     private List<String> imageUrls;
 
-    @Column
-    private Integer displayOrder = 0;
+    @Column(name = "display_order")
+    private Integer displayOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private ArtworkCategory category;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 }

@@ -1,14 +1,23 @@
 package com.pgf.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ArtworkDto {
 
     private Long id;
@@ -17,19 +26,29 @@ public class ArtworkDto {
     @Size(max = 255, message = "Le titre ne peut pas dépasser 255 caractères")
     private String title;
 
-    @Size(max = 2000, message = "La description ne peut pas dépasser 2000 caractères")
+    @Size(max = 1000, message = "La description ne peut pas dépasser 1000 caractères")
     private String description;
 
-    @NotNull(message = "Le statut de disponibilité est obligatoire")
+    @Size(max = 255, message = "Les dimensions ne peuvent pas dépasser 255 caractères")
+    private String dimensions;
+
+    @Size(max = 255, message = "Les matériaux ne peuvent pas dépasser 255 caractères")
+    private String materials;
+
+    private LocalDate creationDate;
+
+    @Positive(message = "Le prix doit être positif")
+    private BigDecimal price;
+
+    @NotNull(message = "La disponibilité est obligatoire")
     private Boolean isAvailable;
 
-    @NotNull(message = "Au moins une image est requise")
-    @Size(min = 1, message = "Au moins une image est requise")
     private List<String> imageUrls;
 
     private Integer displayOrder;
 
     @NotNull(message = "La catégorie est obligatoire")
+    @Positive(message = "L'ID de catégorie doit être positif")
     private Long categoryId;
 
     private String categoryName;
