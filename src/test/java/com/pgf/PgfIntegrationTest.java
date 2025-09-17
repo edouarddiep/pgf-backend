@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -81,10 +82,14 @@ class PgfIntegrationTest {
         ArtworkDto newArtwork = new ArtworkDto();
         newArtwork.setTitle("Test Artwork");
         newArtwork.setDescription("A beautiful test artwork");
+        newArtwork.setDimensions("50x70 cm");
+        newArtwork.setMaterials("Huile sur toile");
+        newArtwork.setPrice(java.math.BigDecimal.valueOf(250.00));
         newArtwork.setIsAvailable(true);
         newArtwork.setImageUrls(List.of("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
+        newArtwork.setMainImageUrl("https://example.com/image1.jpg");
         newArtwork.setDisplayOrder(1);
-        newArtwork.setCategoryId(1L); // Fils de fer
+        newArtwork.setCategoryIds(Set.of(1L)); // Many-to-Many avec Set
 
         mockMvc.perform(post("/api/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -93,7 +98,59 @@ class PgfIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Test Artwork"))
                 .andExpect(jsonPath("$.isAvailable").value(true))
                 .andExpect(jsonPath("$.imageUrls").isArray())
-                .andExpect(jsonPath("$.imageUrls.length()").value(2));
+                .andExpect(jsonPath("$.imageUrls.length()").value(2))
+                .andExpect(jsonPath("$.mainImageUrl").value("https://example.com/image1.jpg"))
+                .andExpect(jsonPath("$.dimensions").value("50x70 cm"))
+                .andExpect(jsonPath("$.price").value(250.00));
+    }
+
+    @Test
+    void shouldCreateArtworkWithMultipleCategories() throws Exception {
+        ArtworkDto newArtwork = new ArtworkDto();
+        newArtwork.setTitle("Multi-Category Artwork");
+        newArtwork.setDescription("Artwork belonging to multiple categories");
+        newArtwork.setIsAvailable(true);
+        newArtwork.setImageUrls(List.of("https://example.com/image1.jpg"));
+        newArtwork.setMainImageUrl("https://example.com/image1.jpg");
+        newArtwork.setDisplayOrder(1);
+        newArtwork.setCategoryIds(Set.of(1L, 2L)); // Multiple catégories
+
+        mockMvc.perform(post("/api/artworks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newArtwork)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Multi-Category Artwork"))
+                .andExpect(jsonPath("$.categoryIds").isArray())
+                .andExpect(jsonPath("$.categoryIds.length()").value(2));
+    }
+
+    @Test
+    void shouldUpdateArtworkCategories() throws Exception {
+        // D'abord créer une œuvre
+        ArtworkDto artwork = new ArtworkDto();
+        artwork.setTitle("Test Artwork for Category Update");
+        artwork.setIsAvailable(true);
+        artwork.setImageUrls(List.of("https://example.com/image.jpg"));
+        artwork.setMainImageUrl("https://example.com/image.jpg");
+        artwork.setCategoryIds(Set.of(1L));
+
+        String response = mockMvc.perform(post("/api/artworks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(artwork)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        ArtworkDto createdArtwork = objectMapper.readValue(response, ArtworkDto.class);
+
+        // Puis mettre à jour ses catégories
+        Set<Long> newCategoryIds = Set.of(1L, 2L, 3L);
+
+        mockMvc.perform(put("/api/admin/artworks/" + createdArtwork.getId() + "/categories")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newCategoryIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.categoryIds").isArray())
+                .andExpect(jsonPath("$.categoryIds.length()").value(3));
     }
 
     @Test
@@ -118,6 +175,43 @@ class PgfIntegrationTest {
     }
 
     @Test
+    void shouldCreateArtworkWithImages() throws Exception {
+        MockMultipartFile artworkJson = new MockMultipartFile(
+                "artwork",
+                "",
+                "application/json",
+                ("{\"title\":\"Test Artwork with Images\"," +
+                        "\"description\":\"Test description\"," +
+                        "\"isAvailable\":true," +
+                        "\"displayOrder\":1," +
+                        "\"categoryIds\":[1,2]}").getBytes()
+        );
+
+        MockMultipartFile image1 = new MockMultipartFile(
+                "images",
+                "test1.jpg",
+                "image/jpeg",
+                "fake image content 1".getBytes()
+        );
+
+        MockMultipartFile image2 = new MockMultipartFile(
+                "images",
+                "test2.jpg",
+                "image/jpeg",
+                "fake image content 2".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/admin/artworks/with-images")
+                        .file(artworkJson)
+                        .file(image1)
+                        .file(image2))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Test Artwork with Images"))
+                .andExpect(jsonPath("$.imageUrls").isArray())
+                .andExpect(jsonPath("$.mainImageUrl").exists());
+    }
+
+    @Test
     void shouldGetAllExhibitions() throws Exception {
         mockMvc.perform(get("/api/exhibitions"))
                 .andExpect(status().isOk())
@@ -131,6 +225,7 @@ class PgfIntegrationTest {
         newExhibition.setTitle("Test Exhibition");
         newExhibition.setDescription("A wonderful test exhibition");
         newExhibition.setLocation("Test Gallery");
+        newExhibition.setAddress("123 Art Street, Paris");
         newExhibition.setStartDate(LocalDate.now().plusDays(30));
         newExhibition.setEndDate(LocalDate.now().plusDays(60));
         newExhibition.setIsFeatured(true);
@@ -141,7 +236,8 @@ class PgfIntegrationTest {
                         .content(objectMapper.writeValueAsString(newExhibition)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Test Exhibition"))
-                .andExpect(jsonPath("$.isFeatured").value(true));
+                .andExpect(jsonPath("$.isFeatured").value(true))
+                .andExpect(jsonPath("$.address").value("123 Art Street, Paris"));
     }
 
     @Test
@@ -231,7 +327,7 @@ class PgfIntegrationTest {
     @Test
     void shouldValidateRequiredFieldsForNewArtwork() throws Exception {
         ArtworkDto invalidArtwork = new ArtworkDto();
-        // Pas de titre, categoryId ou images
+        // Pas de titre, categoryIds vide
 
         mockMvc.perform(post("/api/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -240,17 +336,17 @@ class PgfIntegrationTest {
     }
 
     @Test
-    void shouldValidateMinimumOneImageForArtwork() throws Exception {
-        ArtworkDto artworkWithoutImages = new ArtworkDto();
-        artworkWithoutImages.setTitle("Test Artwork");
-        artworkWithoutImages.setDescription("Test description");
-        artworkWithoutImages.setCategoryId(1L);
-        artworkWithoutImages.setIsAvailable(true);
-        artworkWithoutImages.setImageUrls(List.of()); // Liste vide = invalide
+    void shouldValidateRequiredCategoriesForArtwork() throws Exception {
+        ArtworkDto artworkWithoutCategories = new ArtworkDto();
+        artworkWithoutCategories.setTitle("Test Artwork");
+        artworkWithoutCategories.setDescription("Test description");
+        artworkWithoutCategories.setIsAvailable(true);
+        artworkWithoutCategories.setImageUrls(List.of("https://example.com/image.jpg"));
+        artworkWithoutCategories.setCategoryIds(Set.of()); // Set vide = invalide
 
         mockMvc.perform(post("/api/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(artworkWithoutImages)))
+                        .content(objectMapper.writeValueAsString(artworkWithoutCategories)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.details").exists());
     }
@@ -302,14 +398,17 @@ class PgfIntegrationTest {
         newArtwork.setDescription("Created via admin endpoint");
         newArtwork.setIsAvailable(true);
         newArtwork.setImageUrls(List.of("https://example.com/admin-image.jpg"));
+        newArtwork.setMainImageUrl("https://example.com/admin-image.jpg");
         newArtwork.setDisplayOrder(1);
-        newArtwork.setCategoryId(1L);
+        newArtwork.setCategoryIds(Set.of(1L, 2L)); // Many-to-Many
 
         mockMvc.perform(post("/api/admin/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newArtwork)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Admin Test Artwork"))
-                .andExpect(jsonPath("$.isAvailable").value(true));
+                .andExpect(jsonPath("$.isAvailable").value(true))
+                .andExpect(jsonPath("$.categoryIds").isArray())
+                .andExpect(jsonPath("$.categoryIds.length()").value(2));
     }
 }

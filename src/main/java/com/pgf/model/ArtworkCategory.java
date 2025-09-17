@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import java.util.List;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "artwork_categories")
@@ -25,8 +27,8 @@ public class ArtworkCategory extends BaseEntity {
     private String slug;
 
     @Column(name = "display_order")
-    private Integer displayOrder;
+    private Integer displayOrder = 0;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Artwork> artworks;
+    @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
+    private Set<Artwork> artworks = new HashSet<>();
 }

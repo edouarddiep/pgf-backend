@@ -8,18 +8,21 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface ArtworkRepository extends JpaRepository<Artwork, Long> {
 
-    List<Artwork> findByCategoryOrderByDisplayOrderAscCreatedAtDesc(ArtworkCategory category);
-
-    List<Artwork> findByCategoryIdOrderByDisplayOrderAscCreatedAtDesc(Long categoryId);
-
     List<Artwork> findByIsAvailableTrueOrderByDisplayOrderAscCreatedAtDesc();
 
-    @Query("SELECT a FROM Artwork a WHERE a.category.slug = :categorySlug ORDER BY a.displayOrder ASC, a.createdAt DESC")
-    List<Artwork> findByCategorySlugOrderByDisplayOrder(@Param("categorySlug") String categorySlug);
+    List<Artwork> findByIsAvailableTrueOrderByDisplayOrderAsc();
 
-    long countByCategory(ArtworkCategory category);
+    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.id IN :categoryIds")
+    List<Artwork> findByCategoriesIdIn(@Param("categoryIds") Set<Long> categoryIds);
+
+    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.slug = :slug")
+    List<Artwork> findByCategorySlug(@Param("slug") String slug);
+
+    @Query("SELECT COUNT(a) FROM Artwork a JOIN a.categories c WHERE c = :category")
+    long countByCategoriesContaining(@Param("category") ArtworkCategory category);
 }

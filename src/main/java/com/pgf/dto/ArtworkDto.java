@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -45,14 +46,13 @@ public class ArtworkDto {
 
     private List<String> imageUrls;
 
+    private String mainImageUrl;
+
     private Integer displayOrder;
 
-    @NotNull(message = "La catégorie est obligatoire")
-    @Positive(message = "L'ID de catégorie doit être positif")
-    private Long categoryId;
-
-    private String categoryName;
-    private String categorySlug;
+    private Set<Long> categoryIds;
+    private Set<String> categoryNames;
+    private Set<String> categorySlugs;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

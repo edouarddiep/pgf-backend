@@ -2,34 +2,37 @@ package com.pgf.mapper;
 
 import com.pgf.dto.ArtworkDto;
 import com.pgf.model.Artwork;
+import com.pgf.model.ArtworkCategory;
 import org.mapstruct.*;
+
+import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface ArtworkMapper {
 
-    @Mapping(source = "category.id", target = "categoryId")
-    @Mapping(source = "category.name", target = "categoryName")
-    @Mapping(source = "category.slug", target = "categorySlug")
+    @AfterMapping
+    default void mapCategories(Artwork artwork, @MappingTarget ArtworkDto dto) {
+        if (artwork.getCategories() != null) {
+            dto.setCategoryIds(artwork.getCategories().stream()
+                    .map(ArtworkCategory::getId)
+                    .collect(Collectors.toSet()));
+
+            dto.setCategoryNames(artwork.getCategories().stream()
+                    .map(ArtworkCategory::getName)
+                    .collect(Collectors.toSet()));
+
+            dto.setCategorySlugs(artwork.getCategories().stream()
+                    .map(ArtworkCategory::getSlug)
+                    .collect(Collectors.toSet()));
+        }
+    }
+
     ArtworkDto toDto(Artwork artwork);
 
-    @Mapping(source = "categoryId", target = "category.id")
-    @Mapping(target = "category.name", ignore = true)
-    @Mapping(target = "category.slug", ignore = true)
-    @Mapping(target = "category.description", ignore = true)
-    @Mapping(target = "category.displayOrder", ignore = true)
-    @Mapping(target = "category.artworks", ignore = true)
-    @Mapping(target = "category.createdAt", ignore = true)
-    @Mapping(target = "category.updatedAt", ignore = true)
+    @Mapping(target = "categories", ignore = true)
     Artwork toEntity(ArtworkDto artworkDto);
 
-    @Mapping(source = "categoryId", target = "category.id")
-    @Mapping(target = "category.name", ignore = true)
-    @Mapping(target = "category.slug", ignore = true)
-    @Mapping(target = "category.description", ignore = true)
-    @Mapping(target = "category.displayOrder", ignore = true)
-    @Mapping(target = "category.artworks", ignore = true)
-    @Mapping(target = "category.createdAt", ignore = true)
-    @Mapping(target = "category.updatedAt", ignore = true)
+    @Mapping(target = "categories", ignore = true)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

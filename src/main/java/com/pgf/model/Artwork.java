@@ -9,13 +9,15 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "artworks")
 @Data
-@EqualsAndHashCode(callSuper = true, exclude = "category")
-@ToString(exclude = "category")
+@EqualsAndHashCode(callSuper = true, exclude = "categories")
+@ToString(exclude = "categories")
 public class Artwork extends BaseEntity {
 
     @NotBlank
@@ -44,10 +46,17 @@ public class Artwork extends BaseEntity {
     @Column(name = "image_urls", columnDefinition = "TEXT[]")
     private List<String> imageUrls;
 
+    @Column(name = "main_image_url")
+    private String mainImageUrl;
+
     @Column(name = "display_order")
     private Integer displayOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private ArtworkCategory category;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "artwork_categories_mapping",
+            joinColumns = @JoinColumn(name = "artwork_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<ArtworkCategory> categories = new HashSet<>();
 }
