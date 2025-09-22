@@ -16,17 +16,27 @@ CREATE TABLE artworks (
                           id BIGSERIAL PRIMARY KEY,
                           title VARCHAR(255) NOT NULL,
                           description TEXT,
-                          dimensions VARCHAR(100),
+                          dimensions VARCHAR(255),
                           materials VARCHAR(255),
                           creation_date DATE,
-                          price DECIMAL(10, 2),
+                          price NUMERIC(10,2),
                           is_available BOOLEAN DEFAULT TRUE,
-                          image_url VARCHAR(500),
-                          thumbnail_url VARCHAR(500),
                           display_order INTEGER DEFAULT 0,
-                          category_id BIGINT NOT NULL REFERENCES artwork_categories(id) ON DELETE CASCADE,
+                          image_urls TEXT[],
+                          main_image_url VARCHAR(500),
                           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                           updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table de jointure Many-to-Many pour artwork-categories
+CREATE TABLE artwork_categories_mapping (
+                                            artwork_id BIGINT NOT NULL,
+                                            category_id BIGINT NOT NULL,
+                                            PRIMARY KEY (artwork_id, category_id),
+                                            CONSTRAINT fk_artwork_categories_artwork
+                                                FOREIGN KEY (artwork_id) REFERENCES artworks(id) ON DELETE CASCADE,
+                                            CONSTRAINT fk_artwork_categories_category
+                                                FOREIGN KEY (category_id) REFERENCES artwork_categories(id) ON DELETE CASCADE
 );
 
 -- Table des expositions
@@ -35,6 +45,7 @@ CREATE TABLE exhibitions (
                              title VARCHAR(255) NOT NULL,
                              description TEXT,
                              location VARCHAR(255),
+                             address VARCHAR(500),
                              start_date DATE,
                              end_date DATE,
                              image_url VARCHAR(500),
@@ -59,19 +70,26 @@ CREATE TABLE contact_messages (
 );
 
 -- Index pour les performances
-CREATE INDEX idx_artworks_category_id ON artworks(category_id);
 CREATE INDEX idx_artworks_is_available ON artworks(is_available);
 CREATE INDEX idx_artworks_display_order ON artworks(display_order);
+CREATE INDEX idx_artworks_main_image_url ON artworks(main_image_url);
+CREATE INDEX idx_artworks_image_urls ON artworks USING GIN(image_urls);
 CREATE INDEX idx_artwork_categories_slug ON artwork_categories(slug);
+CREATE INDEX idx_artwork_categories_mapping_artwork ON artwork_categories_mapping(artwork_id);
+CREATE INDEX idx_artwork_categories_mapping_category ON artwork_categories_mapping(category_id);
 CREATE INDEX idx_exhibitions_status ON exhibitions(status);
 CREATE INDEX idx_exhibitions_start_date ON exhibitions(start_date);
 CREATE INDEX idx_contact_messages_status ON contact_messages(status);
 CREATE INDEX idx_contact_messages_is_read ON contact_messages(is_read);
 
--- Insertion des catégories d'œuvres initiales
-INSERT INTO artwork_categories (name, description, slug, display_order) VALUES
-                                                                            ('Fils de fer', 'Œuvres réalisées avec des fils de fer', 'fils-de-fer', 1),
-                                                                            ('Toile de Jute', 'Créations sur toile de jute', 'toile-de-jute', 2),
-                                                                            ('Peinture', 'Tableaux et peintures', 'peinture', 3),
-                                                                            ('Sculpture', 'Sculptures et installations', 'sculpture', 4),
-                                                                            ('Écriture', 'Textes et œuvres littéraires', 'ecriture', 5);
+-- Insertion des catégories
+INSERT INTO artwork_categories (name, slug, description, display_order) VALUES
+                                                                            ('Collages & dessins', 'collages-dessins', 'Œuvres sur papier, collages et dessins', 1),
+                                                                            ('Fils de fer', 'fils-de-fer', 'Sculptures et créations en fil de fer', 2),
+                                                                            ('Land art', 'land-art', 'Créations artistiques dans et avec la nature', 3),
+                                                                            ('Livres & objets', 'livres-objets', 'Livres d''artiste et objets créatifs', 4),
+                                                                            ('Papiers japonais', 'papiers-japonais', 'Créations utilisant des papiers japonais traditionnels', 5),
+                                                                            ('Peintures', 'peintures', 'Peintures sur toile et autres supports', 6),
+                                                                            ('Sacs & colliers', 'sacs-colliers', 'Accessoires et bijoux créés à la main', 7),
+                                                                            ('Sculptures', 'sculptures', 'Sculptures en différents matériaux', 8),
+                                                                            ('Toiles de jute', 'toiles-jute', 'Œuvres réalisées sur toile de jute', 9);

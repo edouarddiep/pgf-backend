@@ -4,43 +4,32 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
 @Slf4j
 public class ImageService {
 
-    @Value("${app.upload.dir:${user.home}/pgf-uploads}")
-    private String uploadDir;
-
-    @Value("${app.upload.max-size:52428800}")
-    private long maxFileSize;
-
-    @Value("${app.upload.base-url:http://localhost:8080/api/images}")
-    private String baseUrl;
-
-    @Value("${app.upload.use-supabase-storage:false}")
-    private boolean useSupabaseStorage;
-
-    @Value("${supabase.url:}")
+    @Value("${supabase.url}")
     private String supabaseUrl;
 
-    @Value("${supabase.service-key:}")
+    @Value("${supabase.service-key}")
     private String serviceKey;
 
     @Value("${app.upload.supabase.bucket:oeuvres}")
@@ -48,127 +37,172 @@ public class ImageService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private final List<String> allowedExtensions = Arrays.asList(
-            "jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "mp4", "webm"
-    );
+    private final List<String> allowedExtensions = Arrays.asList("jpg", "jpeg", "png", "webp");
+    private final int MAX_WIDTH = 1200;
+    private final int MAX_HEIGHT = 800;
+    private final float JPEG_QUALITY = 0.85f;
+    private final int THUMBNAIL_SIZE = 300;
 
-    private final List<String> allowedContentTypes = Arrays.asList(
-            "image/jpeg", "image/png", "image/gif", "image/webp",
-            "image/bmp", "image/tiff", "video/mp4", "video/webm"
-    );
-
-    public String uploadImage(MultipartFile file, String categorySlug) throws IOException {
+    public ImageUploadResult uploadImage(MultipartFile file, String categorySlug) throws IOException {
         validateFile(file);
 
-        if (useSupabaseStorage && !supabaseUrl.isEmpty() && !serviceKey.isEmpty()) {
-            try {
-                return uploadToSupabase(file, categorySlug);
-            } catch (Exception e) {
-                log.warn("Supabase upload failed, falling back to local storage", e);
-                return uploadLocally(file, categorySlug);
-            }
-        } else {
-            return uploadLocally(file, categorySlug);
-        }
+        // Optimiser l'image principale
+        byte[] optimizedImage = optimizeImage(file, MAX_WIDTH, MAX_HEIGHT, JPEG_QUALITY);
+
+        // Créer une miniature
+        byte[] thumbnail = createThumbnail(file, THUMBNAIL_SIZE);
+
+        // Mapper vers la structure existante
+        String supabaseFolder = mapCategoryToSupabaseFolder(categorySlug);
+        String fileName = generateFileName(file.getOriginalFilename(), categorySlug);
+        String thumbnailName = "thumb_" + fileName;
+
+        // Upload image principale
+        String mainImageUrl = uploadToSupabase(optimizedImage, supabaseFolder + "/images", fileName);
+
+        // Upload miniature
+        String thumbnailUrl = uploadToSupabase(thumbnail, supabaseFolder + "/thumbnails", thumbnailName);
+
+        return new ImageUploadResult(mainImageUrl, thumbnailUrl);
     }
 
-    public String getOptimizedImageUrl(String imagePath, ImageSize size) {
-        if (useSupabaseStorage && imagePath.contains(supabaseUrl)) {
-            return getSupabaseOptimizedUrl(imagePath, size);
-        }
-        return imagePath; // Return as-is for local or already full URLs
-    }
-
-    private String uploadToSupabase(MultipartFile file, String categorySlug) throws IOException {
-        String fileName = generateUniqueFileName(file.getOriginalFilename(), categorySlug);
-        String filePath = String.format("%s/%s", categorySlug, fileName);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(serviceKey);
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", file.getResource());
-
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-        String uploadUrl = String.format("%s/storage/v1/object/%s/%s",
-                supabaseUrl, bucketName, filePath);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(uploadUrl, requestEntity, Map.class);
-
-        if (response.getStatusCode().is2xxSuccessful()) {
-            String publicUrl = String.format("%s/storage/v1/object/public/%s/%s",
-                    supabaseUrl, bucketName, filePath);
-            log.info("Image uploaded to Supabase: {}", publicUrl);
-            return publicUrl;
-        } else {
-            throw new RuntimeException("Failed to upload to Supabase Storage");
-        }
-    }
-
-    private String uploadLocally(MultipartFile file, String categorySlug) throws IOException {
-        Path uploadPath = createUploadDirectory(categorySlug);
-        String fileName = generateUniqueFileName(file.getOriginalFilename(), categorySlug);
-        Path filePath = uploadPath.resolve(fileName);
-
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        log.info("Image uploaded locally: {}", filePath);
-
-        return String.format("%s/%s/%s", baseUrl, categorySlug, fileName);
-    }
-
-    private String getSupabaseOptimizedUrl(String originalUrl, ImageSize size) {
-        return switch (size) {
-            case THUMBNAIL -> originalUrl + "?width=300&height=300&resize=cover&quality=80";
-            case MEDIUM -> originalUrl + "?width=800&height=600&resize=cover&quality=85";
-            case LARGE -> originalUrl + "?width=1200&height=900&resize=cover&quality=90";
-            case ORIGINAL -> originalUrl;
+    private String mapCategoryToSupabaseFolder(String categorySlug) {
+        return switch (categorySlug.toLowerCase()) {
+            case "collages-dessins" -> "collages-dessins";
+            case "fils-de-fer" -> "fils-de-fer";
+            case "land-art" -> "land-art";
+            case "livres-objets" -> "livre-objet";
+            case "papiers-japonais" -> "papier-japonais";
+            case "peintures" -> "peinture";
+            case "sacs-colliers" -> "sacs-colliers";
+            case "sculptures" -> "sculpture";
+            case "toiles-jute" -> "toile-de-jute";
+            case "yaya" -> "yaya";
+            default -> "nouvelles-oeuvres"; // Fallback pour nouvelles catégories
         };
     }
 
-    public void deleteImage(String imageUrl) throws IOException {
-        if (imageUrl == null) {
-            return;
+    private byte[] optimizeImage(MultipartFile file, int maxWidth, int maxHeight, float quality) throws IOException {
+        BufferedImage originalImage = ImageIO.read(file.getInputStream());
+
+        // Calculer nouvelles dimensions en gardant les proportions
+        Dimension newDim = calculateDimensions(originalImage.getWidth(), originalImage.getHeight(), maxWidth, maxHeight);
+
+        // Redimensionner avec qualité élevée
+        BufferedImage resizedImage = new BufferedImage(newDim.width, newDim.height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = resizedImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.drawImage(originalImage, 0, 0, newDim.width, newDim.height, null);
+        g2d.dispose();
+
+        // Compresser en JPEG avec qualité spécifiée
+        return compressToJpeg(resizedImage, quality);
+    }
+
+    private byte[] createThumbnail(MultipartFile file, int size) throws IOException {
+        BufferedImage originalImage = ImageIO.read(file.getInputStream());
+
+        // Créer une miniature carrée avec crop centré
+        int sourceSize = Math.min(originalImage.getWidth(), originalImage.getHeight());
+        int x = (originalImage.getWidth() - sourceSize) / 2;
+        int y = (originalImage.getHeight() - sourceSize) / 2;
+
+        BufferedImage croppedImage = originalImage.getSubimage(x, y, sourceSize, sourceSize);
+
+        BufferedImage thumbnail = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = thumbnail.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.drawImage(croppedImage, 0, 0, size, size, null);
+        g2d.dispose();
+
+        return compressToJpeg(thumbnail, 0.8f);
+    }
+
+    private byte[] compressToJpeg(BufferedImage image, float quality) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ImageWriter jpegWriter = ImageIO.getImageWritersByFormatName("jpeg").next();
+        ImageWriteParam jpegWriteParam = jpegWriter.getDefaultWriteParam();
+        jpegWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        jpegWriteParam.setCompressionQuality(quality);
+
+        try (ImageOutputStream imageOutputStream = ImageIO.createImageOutputStream(outputStream)) {
+            jpegWriter.setOutput(imageOutputStream);
+            jpegWriter.write(null, new javax.imageio.IIOImage(image, null, null), jpegWriteParam);
+        }
+        jpegWriter.dispose();
+
+        return outputStream.toByteArray();
+    }
+
+    private Dimension calculateDimensions(int originalWidth, int originalHeight, int maxWidth, int maxHeight) {
+        double widthRatio = (double) maxWidth / originalWidth;
+        double heightRatio = (double) maxHeight / originalHeight;
+        double ratio = Math.min(widthRatio, heightRatio);
+
+        if (ratio >= 1.0) {
+            return new Dimension(originalWidth, originalHeight);
         }
 
-        if (useSupabaseStorage && imageUrl.contains(supabaseUrl)) {
-            deleteFromSupabase(imageUrl);
-        } else if (imageUrl.startsWith(baseUrl)) {
-            deleteFromLocal(imageUrl);
+        return new Dimension(
+                (int) (originalWidth * ratio),
+                (int) (originalHeight * ratio)
+        );
+    }
+
+    private String uploadToSupabase(byte[] imageData, String folder, String fileName) throws IOException {
+        String filePath = folder + "/" + fileName;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(serviceKey);
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentLength(imageData.length);
+
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(imageData, headers);
+
+        String uploadUrl = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucketName, filePath);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, requestEntity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                String publicUrl = String.format("%s/storage/v1/object/public/%s/%s", supabaseUrl, bucketName, filePath);
+                log.info("Image uploaded to Supabase: {}", publicUrl);
+                return publicUrl;
+            } else {
+                throw new RuntimeException("Failed to upload to Supabase Storage: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Error uploading to Supabase: {}", e.getMessage(), e);
+            throw new IOException("Upload failed: " + e.getMessage(), e);
         }
     }
 
-    private void deleteFromSupabase(String imageUrl) {
+    public void deleteImage(String imageUrl) {
+        if (imageUrl == null || !imageUrl.contains(supabaseUrl)) {
+            return;
+        }
+
         try {
-            String filePath = extractFilePathFromSupabaseUrl(imageUrl);
+            String filePath = extractFilePathFromUrl(imageUrl);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(serviceKey);
             HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-            String deleteUrl = String.format("%s/storage/v1/object/%s/%s",
-                    supabaseUrl, bucketName, filePath);
+            String deleteUrl = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucketName, filePath);
 
             restTemplate.exchange(deleteUrl, HttpMethod.DELETE, requestEntity, Void.class);
             log.info("Image deleted from Supabase: {}", filePath);
 
         } catch (Exception e) {
-            log.error("Error deleting file from Supabase Storage: {}", imageUrl, e);
+            log.error("Error deleting image from Supabase: {}", imageUrl, e);
         }
     }
 
-    private void deleteFromLocal(String imageUrl) throws IOException {
-        String relativePath = imageUrl.substring(baseUrl.length() + 1);
-        Path filePath = Paths.get(uploadDir, relativePath);
-
-        if (Files.exists(filePath)) {
-            Files.delete(filePath);
-            log.info("Image deleted locally: {}", filePath);
-        }
-    }
-
-    private String extractFilePathFromSupabaseUrl(String url) {
+    private String extractFilePathFromUrl(String url) {
         String publicPath = "/storage/v1/object/public/" + bucketName + "/";
         int index = url.indexOf(publicPath);
         if (index != -1) {
@@ -177,55 +211,34 @@ public class ImageService {
         return "";
     }
 
+    private String generateFileName(String originalFileName, String categorySlug) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String uuid = UUID.randomUUID().toString().substring(0, 8);
+        return String.format("%s-%s-%s.jpg", categorySlug, timestamp, uuid);
+    }
+
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
 
-        if (file.getSize() > maxFileSize) {
-            throw new IllegalArgumentException("File too large. Max size: " + maxFileSize + " bytes");
+        if (file.getSize() > 50 * 1024 * 1024) { // 50MB max
+            throw new IllegalArgumentException("File too large");
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !allowedContentTypes.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Invalid file type. Allowed: " + allowedContentTypes);
-        }
-
-        String fileName = file.getOriginalFilename();
-        if (fileName != null) {
-            String extension = getFileExtension(fileName).toLowerCase();
-            if (!allowedExtensions.contains(extension)) {
-                throw new IllegalArgumentException("Invalid file extension. Allowed: " + allowedExtensions);
-            }
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Invalid file type");
         }
     }
 
-    private Path createUploadDirectory(String categorySlug) throws IOException {
-        Path uploadPath = Paths.get(uploadDir, categorySlug);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
+    public static class ImageUploadResult {
+        public final String imageUrl;
+        public final String thumbnailUrl;
+
+        public ImageUploadResult(String imageUrl, String thumbnailUrl) {
+            this.imageUrl = imageUrl;
+            this.thumbnailUrl = thumbnailUrl;
         }
-        return uploadPath;
-    }
-
-    private String generateUniqueFileName(String originalFileName, String categorySlug) {
-        String extension = getFileExtension(originalFileName);
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String uuid = UUID.randomUUID().toString().substring(0, 8);
-
-        // Inclure la catégorie dans le nom pour éviter les conflits
-        return String.format("%s-%s-%s.%s",
-                categorySlug.replaceAll("[^a-z0-9-]", ""), timestamp, uuid, extension);
-    }
-
-    private String getFileExtension(String fileName) {
-        if (fileName == null || !fileName.contains(".")) {
-            return "";
-        }
-        return fileName.substring(fileName.lastIndexOf('.') + 1);
-    }
-
-    public enum ImageSize {
-        THUMBNAIL, MEDIUM, LARGE, ORIGINAL
     }
 }

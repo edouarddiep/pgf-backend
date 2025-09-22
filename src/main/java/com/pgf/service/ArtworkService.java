@@ -77,13 +77,19 @@ public class ArtworkService {
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
 
+        // Gestion explicite des catégories
         if (artworkDto.getCategoryIds() != null && !artworkDto.getCategoryIds().isEmpty()) {
             Set<ArtworkCategory> categories = new HashSet<>(categoryRepository.findAllById(artworkDto.getCategoryIds()));
+            if (categories.isEmpty()) {
+                throw new IllegalArgumentException("Aucune catégorie valide trouvée avec les IDs fournis");
+            }
             artwork.setCategories(categories);
+        } else {
+            throw new IllegalArgumentException("Au moins une catégorie doit être spécifiée");
         }
 
         Artwork savedArtwork = artworkRepository.save(artwork);
-        log.info("Created artwork: {}", savedArtwork.getTitle());
+        log.info("Created artwork: {} with {} categories", savedArtwork.getTitle(), savedArtwork.getCategories().size());
 
         return artworkMapper.toDto(savedArtwork);
     }
@@ -92,17 +98,28 @@ public class ArtworkService {
         Artwork existingArtwork = artworkRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
 
+        // Mise à jour des champs de base
         artworkMapper.updateEntityFromDto(artworkDto, existingArtwork);
 
+        // Gestion explicite des catégories
         if (artworkDto.getCategoryIds() != null) {
+            // Vider les catégories existantes
             existingArtwork.getCategories().clear();
+
             if (!artworkDto.getCategoryIds().isEmpty()) {
-                Set<ArtworkCategory> categories = new HashSet<>(categoryRepository.findAllById(artworkDto.getCategoryIds()));
-                existingArtwork.setCategories(categories);
+                Set<ArtworkCategory> newCategories = new HashSet<>(categoryRepository.findAllById(artworkDto.getCategoryIds()));
+                if (newCategories.isEmpty()) {
+                    throw new IllegalArgumentException("Aucune catégorie valide trouvée avec les IDs fournis");
+                }
+                existingArtwork.setCategories(newCategories);
+            } else {
+                throw new IllegalArgumentException("Au moins une catégorie doit être spécifiée");
             }
         }
 
         Artwork updatedArtwork = artworkRepository.save(existingArtwork);
+        log.info("Updated artwork: {} with {} categories", updatedArtwork.getTitle(), updatedArtwork.getCategories().size());
+
         return artworkMapper.toDto(updatedArtwork);
     }
 

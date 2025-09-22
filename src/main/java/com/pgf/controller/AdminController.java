@@ -1,5 +1,8 @@
-package com.pgf.controller.admin;
+package com.pgf.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.pgf.dto.*;
 import com.pgf.service.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -88,7 +91,6 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // Gestion des catégories d'œuvres (Many-to-Many)
     @PutMapping("/artworks/{id}/categories")
     @Operation(summary = "Update artwork categories")
     public ResponseEntity<ArtworkDto> updateArtworkCategories(
@@ -98,30 +100,84 @@ public class AdminController {
         return ResponseEntity.ok(updated);
     }
 
-    // Upload avec images multiples
     @PostMapping(value = "/artworks/with-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Create artwork with images")
+    @Operation(summary = "Create artwork with optimized images")
     public ResponseEntity<ArtworkDto> createArtworkWithImages(
-            @RequestPart("artwork") @Valid ArtworkDto artworkDto,
+            @RequestPart("artwork") String artworkJson,
             @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        ArtworkDto artworkDto = mapper.readValue(artworkJson, ArtworkDto.class);
 
         if (images != null && !images.isEmpty()) {
             List<String> uploadedUrls = new ArrayList<>();
-            String folderName = sanitizeForPath(artworkDto.getTitle());
+            List<String> thumbnailUrls = new ArrayList<>();
+            String categorySlug = getCategorySlug(artworkDto.getCategoryIds());
 
             for (MultipartFile image : images) {
-                String imageUrl = imageService.uploadImage(image, folderName);
-                uploadedUrls.add(imageUrl);
+                ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
+                uploadedUrls.add(result.imageUrl);
+                thumbnailUrls.add(result.thumbnailUrl);
             }
 
             artworkDto.setImageUrls(uploadedUrls);
+            artworkDto.setThumbnailUrls(thumbnailUrls);
             if (!uploadedUrls.isEmpty()) {
                 artworkDto.setMainImageUrl(uploadedUrls.get(0));
+                artworkDto.setMainThumbnailUrl(thumbnailUrls.get(0));
             }
         }
 
         ArtworkDto created = adminService.createArtwork(artworkDto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @PutMapping(value = "/artworks/{id}/with-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update artwork with optimized images")
+    public ResponseEntity<ArtworkDto> updateArtworkWithImages(
+            @PathVariable Long id,
+            @RequestPart("artwork") String artworkJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        ArtworkDto artworkDto = mapper.readValue(artworkJson, ArtworkDto.class);
+
+        if (images != null && !images.isEmpty()) {
+            List<String> uploadedUrls = new ArrayList<>();
+            List<String> thumbnailUrls = new ArrayList<>();
+            String categorySlug = getCategorySlug(artworkDto.getCategoryIds());
+
+            for (MultipartFile image : images) {
+                ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
+                uploadedUrls.add(result.imageUrl);
+                thumbnailUrls.add(result.thumbnailUrl);
+            }
+
+            List<String> existingUrls = artworkDto.getImageUrls() != null ?
+                    new ArrayList<>(artworkDto.getImageUrls()) : new ArrayList<>();
+            List<String> existingThumbnails = artworkDto.getThumbnailUrls() != null ?
+                    new ArrayList<>(artworkDto.getThumbnailUrls()) : new ArrayList<>();
+
+            existingUrls.addAll(uploadedUrls);
+            existingThumbnails.addAll(thumbnailUrls);
+
+            artworkDto.setImageUrls(existingUrls);
+            artworkDto.setThumbnailUrls(existingThumbnails);
+
+            if (artworkDto.getMainImageUrl() == null && !uploadedUrls.isEmpty()) {
+                artworkDto.setMainImageUrl(uploadedUrls.get(0));
+                artworkDto.setMainThumbnailUrl(thumbnailUrls.get(0));
+            }
+        }
+
+        ArtworkDto updated = adminService.updateArtwork(id, artworkDto);
+        return ResponseEntity.ok(updated);
     }
 
     // Expositions
@@ -182,14 +238,26 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // Upload d'images
     @PostMapping(value = "/upload/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload image")
+    @Operation(summary = "Upload optimized image")
     public ResponseEntity<ImageUploadResponse> uploadImage(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "category", defaultValue = "general") String category) throws IOException {
-        String imageUrl = imageService.uploadImage(file, category);
-        return ResponseEntity.ok(new ImageUploadResponse(imageUrl));
+
+        ImageService.ImageUploadResult result = imageService.uploadImage(file, category);
+        return ResponseEntity.ok(new ImageUploadResponse(result.imageUrl, result.thumbnailUrl));
+    }
+
+    private String getCategorySlug(Set<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return "general";
+        }
+
+        return adminService.getAllCategories().stream()
+                .filter(cat -> categoryIds.contains(cat.getId()))
+                .findFirst()
+                .map(ArtworkCategoryDto::getSlug)
+                .orElse("general");
     }
 
     private String sanitizeForPath(String input) {
@@ -197,5 +265,5 @@ public class AdminController {
     }
 
     public record AdminLoginRequest(String password) {}
-    public record ImageUploadResponse(String imageUrl) {}
+    public record ImageUploadResponse(String imageUrl, String thumbnailUrl) {}
 }

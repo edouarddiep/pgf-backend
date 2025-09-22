@@ -12,7 +12,7 @@ services:
       # Configuration Supabase
       - SUPABASE_DATABASE_URL=jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require
       - SUPABASE_DB_USERNAME=postgres
-      - SUPABASE_DB_PASSWORD=BcxnBstrBYr6Tx92
+      - SUPABASE_DB_PASSWORD=A2NFWaEvE4QS79JF
       - SUPABASE_URL=https://bhjpavcxhymxcadesnqy.supabase.co
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
 

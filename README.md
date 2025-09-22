@@ -251,7 +251,7 @@ com.pgf/
 
 ## 📊 Base de données
 
-### Schéma Flyway (V1__init_schema.sql)
+### Schéma Flyway (V1__init_db.sql)
 - ❌ **Attention** : Le script Flyway actuel ne correspond pas aux entités Java actuelles
 - 🔄 **Action requise** : Mise à jour du script de migration pour inclure les colonnes manquantes
 

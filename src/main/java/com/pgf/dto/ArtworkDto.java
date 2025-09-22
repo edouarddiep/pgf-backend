@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +14,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -45,12 +48,17 @@ public class ArtworkDto {
     private Boolean isAvailable;
 
     private List<String> imageUrls;
+    private List<String> thumbnailUrls;
 
     private String mainImageUrl;
+    private String mainThumbnailUrl;
 
     private Integer displayOrder;
 
+    @JsonProperty("categoryIds")
+    @JsonDeserialize(as = HashSet.class)
     private Set<Long> categoryIds;
+
     private Set<String> categoryNames;
     private Set<String> categorySlugs;
 

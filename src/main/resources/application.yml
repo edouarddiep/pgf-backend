@@ -1,10 +1,43 @@
 spring:
   application:
     name: pgf-backend
+  profiles:
+    active: supabase
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+      enabled: true
+
+server:
+  port: 8080
+
+supabase:
+  url: ${SUPABASE_URL:https://bhjpavcxhymxcadesnqy.supabase.co}
+  service-key: ${SUPABASE_SERVICE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoanBhdmN4aHlteGNhZGVzbnF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzI2NDkyNiwiZXhwIjoyMDcyODQwOTI2fQ.AKh5pH-O9LHGtAzNl-WsGuqGlI8485AGKV_4-tK1Fo4}
+
+app:
+  upload:
+    supabase:
+      bucket: "oeuvres"
+      # Optimisations d'images
+      max-width: 1200
+      max-height: 800
+      jpeg-quality: 0.85
+      thumbnail-size: 300
+
+  admin:
+    password: ${ADMIN_PASSWORD:pgf-admin-2025}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: supabase
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pgf_db}
-    username: ${SUPABASE_DB_USERNAME:pgf_user}
-    password: ${SUPABASE_DB_PASSWORD:rescue}
+    url: ${SUPABASE_DATABASE_URL:jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require}
+    username: ${SUPABASE_DB_USERNAME:postgres}
+    password: ${SUPABASE_DB_PASSWORD:A2NFWaEvE4QS79JF}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -13,70 +46,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-  servlet:
-    multipart:
-      max-file-size: 50MB
-      max-request-size: 100MB
-      enabled: true
-
-app:
-  upload:
-    dir: ${USER_HOME:${user.home}}/pgf-uploads
-    max-size: 52428800  # 50MB
-    base-url: ${UPLOAD_BASE_URL:http://localhost:8080/api/images}
-    use-supabase-storage: ${USE_SUPABASE_STORAGE:false}
-    supabase:
-      bucket: "oeuvres"
-  admin:
-    password: ${ADMIN_PASSWORD:pgf-2025}
-
-server:
-  port: 8080
-
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-logging:
-  level:
-    com.pgf: INFO
-
----
-# Profil Supabase
-spring:
-  config:
-    activate:
-      on-profile: supabase
-  datasource:
-    url: ${SUPABASE_DATABASE_URL:jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require}
-    username: ${SUPABASE_DB_USERNAME:postgres}
-    password: ${SUPABASE_DB_PASSWORD:BcxnBstrBYr6Tx92}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-
-supabase:
-  url: ${SUPABASE_URL:https://bhjpavcxhymxcadesnqy.supabase.co}
-  service-key: ${SUPABASE_SERVICE_KEY:}
-
-app:
-  upload:
-    dir: ${java.io.tmpdir}/pgf-uploads
-    use-supabase-storage: ${USE_SUPABASE_STORAGE:true}
-    supabase:
-      bucket: "oeuvres"
-  admin:
-    password: ${ADMIN_PASSWORD:pgf-admin-2025}
