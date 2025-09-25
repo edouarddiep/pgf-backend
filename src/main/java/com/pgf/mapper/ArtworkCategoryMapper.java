@@ -4,10 +4,9 @@ import com.pgf.dto.ArtworkCategoryDto;
 import com.pgf.model.ArtworkCategory;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring", uses = ArtworkMapper.class)
+@Mapper(componentModel = "spring")
 public interface ArtworkCategoryMapper {
 
-    @Mapping(target = "artworkCount", expression = "java(category.getArtworks() != null ? (long) category.getArtworks().size() : 0L)")
     ArtworkCategoryDto toDto(ArtworkCategory category);
 
     @Mapping(target = "artworks", ignore = true)
