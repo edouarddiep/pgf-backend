@@ -13,7 +13,6 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -232,13 +231,7 @@ public class ImageService {
         }
     }
 
-    public static class ImageUploadResult {
-        public final String imageUrl;
-        public final String thumbnailUrl;
+    public record ImageUploadResult(String imageUrl, String thumbnailUrl) {
 
-        public ImageUploadResult(String imageUrl, String thumbnailUrl) {
-            this.imageUrl = imageUrl;
-            this.thumbnailUrl = thumbnailUrl;
-        }
     }
 }

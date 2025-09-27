@@ -8,6 +8,7 @@ import com.pgf.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,15 +17,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = "http://localhost:4200")
 @Tag(name = "Admin", description = "Admin management endpoints")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminController {
 
     private final AdminService adminService;
@@ -119,8 +120,8 @@ public class AdminController {
 
             for (MultipartFile image : images) {
                 ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
-                uploadedUrls.add(result.imageUrl);
-                thumbnailUrls.add(result.thumbnailUrl);
+                uploadedUrls.add(result.imageUrl());
+                thumbnailUrls.add(result.thumbnailUrl());
             }
 
             artworkDto.setImageUrls(uploadedUrls);
@@ -155,8 +156,8 @@ public class AdminController {
 
             for (MultipartFile image : images) {
                 ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
-                uploadedUrls.add(result.imageUrl);
-                thumbnailUrls.add(result.thumbnailUrl);
+                uploadedUrls.add(result.imageUrl());
+                thumbnailUrls.add(result.thumbnailUrl());
             }
 
             List<String> existingUrls = artworkDto.getImageUrls() != null ?
@@ -245,7 +246,37 @@ public class AdminController {
             @RequestParam(value = "category", defaultValue = "general") String category) throws IOException {
 
         ImageService.ImageUploadResult result = imageService.uploadImage(file, category);
-        return ResponseEntity.ok(new ImageUploadResponse(result.imageUrl, result.thumbnailUrl));
+        return ResponseEntity.ok(new ImageUploadResponse(result.imageUrl(), result.thumbnailUrl()));
+    }
+
+    @PostMapping("/upload/exhibition-image")
+    @Operation(summary = "Upload exhibition image")
+    public ResponseEntity<Map<String, String>> uploadExhibitionImage(
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+            ImageService.ImageUploadResult result = imageService.uploadImage(file, "exhibitions");
+
+            Map<String, String> response = new HashMap<>();
+            response.put("imageUrl", result.imageUrl());
+            response.put("thumbnailUrl", result.thumbnailUrl());
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            log.error("Error uploading exhibition image: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de l'upload de l'image"));
+        }
+    }
+
+    @PutMapping("/exhibitions/{id}/order")
+    @Operation(summary = "Update exhibition display order")
+    public ResponseEntity<Void> updateExhibitionOrder(
+            @PathVariable Long id,
+            @RequestBody Map<String, Integer> request) {
+        Integer displayOrder = request.get("displayOrder");
+        adminService.updateExhibitionOrder(id, displayOrder);
+        return ResponseEntity.ok().build();
     }
 
     private String getCategorySlug(Set<Long> categoryIds) {

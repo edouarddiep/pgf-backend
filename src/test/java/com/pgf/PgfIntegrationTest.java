@@ -228,7 +228,6 @@ class PgfIntegrationTest {
         newExhibition.setAddress("123 Art Street, Paris");
         newExhibition.setStartDate(LocalDate.now().plusDays(30));
         newExhibition.setEndDate(LocalDate.now().plusDays(60));
-        newExhibition.setIsFeatured(true);
         newExhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
 
         mockMvc.perform(post("/api/exhibitions")

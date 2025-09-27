@@ -18,15 +18,12 @@ public interface ArtworkMapper {
     ArtworkDto toDto(Artwork artwork);
 
     default Set<Long> mapCategoryIds(Artwork artwork) {
-        System.out.println("DEBUG - mapCategoryIds called for: " + artwork.getTitle());
         if (artwork.getCategories() != null && !artwork.getCategories().isEmpty()) {
             Set<Long> ids = artwork.getCategories().stream()
                     .map(ArtworkCategory::getId)
                     .collect(Collectors.toSet());
-            System.out.println("DEBUG - Mapped category IDs: " + ids);
             return ids;
         }
-        System.out.println("DEBUG - No categories, returning empty set");
         return new HashSet<>();
     }
 

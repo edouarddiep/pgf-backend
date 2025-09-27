@@ -34,8 +34,8 @@ public class Exhibition extends BaseEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
-    @Column(name = "is_featured")
-    private Boolean isFeatured = false;
+    @Column(name = "display_order")
+    private Integer displayOrder = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

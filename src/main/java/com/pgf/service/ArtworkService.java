@@ -37,11 +37,8 @@ public class ArtworkService {
 
     @Transactional(readOnly = true)
     public ArtworkDto findById(Long id) {
-        System.out.println("DEBUG - Finding artwork with id: " + id);
         return artworkRepository.findByIdWithCategories(id)
                 .map(artwork -> {
-                    System.out.println("DEBUG - Found artwork: " + artwork.getTitle());
-                    System.out.println("DEBUG - Categories in entity: " + artwork.getCategories().size());
                     return artworkMapper.toDto(artwork);
                 })
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
