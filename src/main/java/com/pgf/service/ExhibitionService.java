@@ -22,29 +22,23 @@ public class ExhibitionService {
 
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findAll() {
-        return exhibitionRepository.findAllByOrderByStartDateDesc()
+        return exhibitionRepository.findAllByOrderByDisplayOrderAscStartDateDesc()
                 .stream()
-                .map(exhibitionMapper::toDto)
+                .map(this::mapWithCalculatedStatus)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<ExhibitionDto> findById(Long id) {
         return exhibitionRepository.findById(id)
-                .map(exhibitionMapper::toDto);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<ExhibitionDto> findFeaturedExhibition() {
-        return exhibitionRepository.findFirstByIsFeaturedTrueAndStartDateAfterOrderByStartDateAsc(LocalDate.now())
-                .map(exhibitionMapper::toDto);
+                .map(this::mapWithCalculatedStatus);
     }
 
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findUpcomingExhibitions() {
         return exhibitionRepository.findByStartDateAfterOrderByStartDateAsc(LocalDate.now())
                 .stream()
-                .map(exhibitionMapper::toDto)
+                .map(this::mapWithCalculatedStatus)
                 .toList();
     }
 
@@ -53,7 +47,7 @@ public class ExhibitionService {
         return exhibitionRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(
                         LocalDate.now(), LocalDate.now())
                 .stream()
-                .map(exhibitionMapper::toDto)
+                .map(this::mapWithCalculatedStatus)
                 .toList();
     }
 
@@ -61,15 +55,20 @@ public class ExhibitionService {
     public List<ExhibitionDto> findPastExhibitions() {
         return exhibitionRepository.findByEndDateBeforeOrderByStartDateDesc(LocalDate.now())
                 .stream()
-                .map(exhibitionMapper::toDto)
+                .map(this::mapWithCalculatedStatus)
                 .toList();
     }
 
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
-        calculateStatus(exhibition);
+        calculateAndSetStatus(exhibition);
+
+        if (exhibition.getDisplayOrder() == null) {
+            exhibition.setDisplayOrder(getNextDisplayOrder());
+        }
+
         Exhibition savedExhibition = exhibitionRepository.save(exhibition);
-        return exhibitionMapper.toDto(savedExhibition);
+        return mapWithCalculatedStatus(savedExhibition);
     }
 
     public ExhibitionDto update(Long id, ExhibitionDto exhibitionDto) {
@@ -77,9 +76,9 @@ public class ExhibitionService {
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
 
         exhibitionMapper.updateEntityFromDto(exhibitionDto, existingExhibition);
-        calculateStatus(existingExhibition);
+        calculateAndSetStatus(existingExhibition);
         Exhibition updatedExhibition = exhibitionRepository.save(existingExhibition);
-        return exhibitionMapper.toDto(updatedExhibition);
+        return mapWithCalculatedStatus(updatedExhibition);
     }
 
     public void delete(Long id) {
@@ -89,8 +88,20 @@ public class ExhibitionService {
         exhibitionRepository.deleteById(id);
     }
 
-    private void calculateStatus(Exhibition exhibition) {
-        if (exhibition.getStartDate() == null || exhibition.getEndDate() == null) {
+    public void updateDisplayOrder(Long id, Integer newOrder) {
+        Exhibition exhibition = exhibitionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
+        exhibition.setDisplayOrder(newOrder);
+        exhibitionRepository.save(exhibition);
+    }
+
+    private ExhibitionDto mapWithCalculatedStatus(Exhibition exhibition) {
+        calculateAndSetStatus(exhibition);
+        return exhibitionMapper.toDto(exhibition);
+    }
+
+    private void calculateAndSetStatus(Exhibition exhibition) {
+        if (exhibition.getStartDate() == null) {
             exhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
             return;
         }
@@ -99,10 +110,14 @@ public class ExhibitionService {
 
         if (today.isBefore(exhibition.getStartDate())) {
             exhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
-        } else if (today.isAfter(exhibition.getEndDate())) {
+        } else if (exhibition.getEndDate() != null && today.isAfter(exhibition.getEndDate())) {
             exhibition.setStatus(Exhibition.ExhibitionStatus.PAST);
         } else {
             exhibition.setStatus(Exhibition.ExhibitionStatus.ONGOING);
         }
+    }
+
+    private Integer getNextDisplayOrder() {
+        return exhibitionRepository.findMaxDisplayOrder().orElse(0) + 1;
     }
 }
