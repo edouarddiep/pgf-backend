@@ -59,6 +59,7 @@ public class ExhibitionService {
                 .toList();
     }
 
+    @Transactional
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
         calculateAndSetStatus(exhibition);
@@ -71,6 +72,7 @@ public class ExhibitionService {
         return mapWithCalculatedStatus(savedExhibition);
     }
 
+    @Transactional
     public ExhibitionDto update(Long id, ExhibitionDto exhibitionDto) {
         Exhibition existingExhibition = exhibitionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
@@ -81,6 +83,7 @@ public class ExhibitionService {
         return mapWithCalculatedStatus(updatedExhibition);
     }
 
+    @Transactional
     public void delete(Long id) {
         if (!exhibitionRepository.existsById(id)) {
             throw new EntityNotFoundException("Exhibition not found with id: " + id);
@@ -88,6 +91,7 @@ public class ExhibitionService {
         exhibitionRepository.deleteById(id);
     }
 
+    @Transactional
     public void updateDisplayOrder(Long id, Integer newOrder) {
         Exhibition exhibition = exhibitionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
