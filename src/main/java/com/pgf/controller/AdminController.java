@@ -115,20 +115,16 @@ public class AdminController {
 
         if (images != null && !images.isEmpty()) {
             List<String> uploadedUrls = new ArrayList<>();
-            List<String> thumbnailUrls = new ArrayList<>();
             String categorySlug = getCategorySlug(artworkDto.getCategoryIds());
 
             for (MultipartFile image : images) {
                 ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
                 uploadedUrls.add(result.imageUrl());
-                thumbnailUrls.add(result.thumbnailUrl());
             }
 
             artworkDto.setImageUrls(uploadedUrls);
-            artworkDto.setThumbnailUrls(thumbnailUrls);
             if (!uploadedUrls.isEmpty()) {
                 artworkDto.setMainImageUrl(uploadedUrls.get(0));
-                artworkDto.setMainThumbnailUrl(thumbnailUrls.get(0));
             }
         }
 
@@ -151,29 +147,21 @@ public class AdminController {
 
         if (images != null && !images.isEmpty()) {
             List<String> uploadedUrls = new ArrayList<>();
-            List<String> thumbnailUrls = new ArrayList<>();
             String categorySlug = getCategorySlug(artworkDto.getCategoryIds());
 
             for (MultipartFile image : images) {
                 ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
                 uploadedUrls.add(result.imageUrl());
-                thumbnailUrls.add(result.thumbnailUrl());
             }
 
             List<String> existingUrls = artworkDto.getImageUrls() != null ?
                     new ArrayList<>(artworkDto.getImageUrls()) : new ArrayList<>();
-            List<String> existingThumbnails = artworkDto.getThumbnailUrls() != null ?
-                    new ArrayList<>(artworkDto.getThumbnailUrls()) : new ArrayList<>();
 
             existingUrls.addAll(uploadedUrls);
-            existingThumbnails.addAll(thumbnailUrls);
-
             artworkDto.setImageUrls(existingUrls);
-            artworkDto.setThumbnailUrls(existingThumbnails);
 
             if (artworkDto.getMainImageUrl() == null && !uploadedUrls.isEmpty()) {
                 artworkDto.setMainImageUrl(uploadedUrls.get(0));
-                artworkDto.setMainThumbnailUrl(thumbnailUrls.get(0));
             }
         }
 
@@ -246,7 +234,7 @@ public class AdminController {
             @RequestParam(value = "category", defaultValue = "general") String category) throws IOException {
 
         ImageService.ImageUploadResult result = imageService.uploadImage(file, category);
-        return ResponseEntity.ok(new ImageUploadResponse(result.imageUrl(), result.thumbnailUrl()));
+        return ResponseEntity.ok(new ImageUploadResponse(result.imageUrl()));
     }
 
     @PostMapping("/upload/exhibition-image")
@@ -259,7 +247,6 @@ public class AdminController {
 
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", result.imageUrl());
-            response.put("thumbnailUrl", result.thumbnailUrl());
 
             return ResponseEntity.ok(response);
         } catch (IOException e) {
@@ -296,5 +283,5 @@ public class AdminController {
     }
 
     public record AdminLoginRequest(String password) {}
-    public record ImageUploadResponse(String imageUrl, String thumbnailUrl) {}
+    public record ImageUploadResponse(String imageUrl) {}
 }

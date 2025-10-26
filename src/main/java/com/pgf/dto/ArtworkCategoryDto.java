@@ -11,10 +11,12 @@ public class ArtworkCategoryDto {
 
     private Long id;
 
-    @NotBlank(message = "Le nom de la catégorie est requis")
+    @NotBlank(message = "Le nom de la catÃ©gorie est requis")
     private String name;
 
     private String description;
+
+    private String descriptionShort;
 
     @NotBlank(message = "Le slug est requis")
     @Pattern(regexp = "^[a-z0-9-]+$", message = "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets")

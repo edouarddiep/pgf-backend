@@ -26,6 +26,8 @@ public class ExhibitionDto {
 
     private String imageUrl;
 
+    private String url;
+
     private Integer displayOrder;
 
     private Exhibition.ExhibitionStatus status;

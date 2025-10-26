@@ -8,11 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -27,31 +23,18 @@ public class ArtworkDto {
     private Long id;
 
     @NotBlank(message = "Le titre est obligatoire")
-    @Size(max = 255, message = "Le titre ne peut pas dépasser 255 caractères")
+    @Size(max = 255, message = "Le titre ne peut pas dÃ©passer 255 caractÃ¨res")
     private String title;
 
     @Size(max = 1000, message = "La description ne peut pas dépasser 1000 caractères")
     private String description;
 
-    @Size(max = 255, message = "Les dimensions ne peuvent pas dépasser 255 caractères")
-    private String dimensions;
-
-    @Size(max = 255, message = "Les matériaux ne peuvent pas dépasser 255 caractères")
-    private String materials;
-
-    private LocalDate creationDate;
-
-    @Positive(message = "Le prix doit être positif")
-    private BigDecimal price;
-
-    @NotNull(message = "La disponibilité est obligatoire")
-    private Boolean isAvailable;
+    @Size(max = 500, message = "La description courte ne peut pas dépasser 500 caractères")
+    private String descriptionShort;
 
     private List<String> imageUrls;
-    private List<String> thumbnailUrls;
 
     private String mainImageUrl;
-    private String mainThumbnailUrl;
 
     private Integer displayOrder;
 

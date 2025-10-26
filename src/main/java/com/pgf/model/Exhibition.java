@@ -34,6 +34,9 @@ public class Exhibition extends BaseEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "url")
+    private String url;
+
     @Column(name = "display_order")
     private Integer displayOrder = 0;
 

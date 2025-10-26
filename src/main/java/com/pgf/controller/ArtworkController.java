@@ -49,13 +49,6 @@ public class ArtworkController {
         return ResponseEntity.ok(artworks);
     }
 
-    @GetMapping("/available")
-    @Operation(summary = "Get available artworks")
-    public ResponseEntity<List<ArtworkDto>> getAvailableArtworks() {
-        List<ArtworkDto> artworks = artworkService.findAvailableArtworks();
-        return ResponseEntity.ok(artworks);
-    }
-
     @PostMapping
     @Operation(summary = "Create new artwork")
     public ResponseEntity<ArtworkDto> createArtwork(@Valid @RequestBody ArtworkDto artworkDto) {

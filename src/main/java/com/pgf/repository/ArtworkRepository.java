@@ -14,11 +14,7 @@ import java.util.Set;
 @Repository
 public interface ArtworkRepository extends JpaRepository<Artwork, Long> {
 
-    List<Artwork> findByIsAvailableTrueOrderByDisplayOrderAscCreatedAtDesc();
-
-    List<Artwork> findByIsAvailableTrueOrderByDisplayOrderAsc();
-
-    @Query("SELECT a FROM Artwork a LEFT JOIN FETCH a.categories WHERE a.id = :id")
+    @Query("SELECT DISTINCT a FROM Artwork a LEFT JOIN FETCH a.categories WHERE a.id = :id")
     Optional<Artwork> findByIdWithCategories(@Param("id") Long id);
 
     @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.id IN :categoryIds")

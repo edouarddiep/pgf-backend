@@ -66,13 +66,6 @@ public class ExhibitionController {
         return ResponseEntity.ok(updatedExhibition);
     }
 
-    @PutMapping("/{id}/order")
-    @Operation(summary = "Update exhibition display order")
-    public ResponseEntity<Void> updateExhibitionOrder(@PathVariable Long id, @RequestParam Integer displayOrder) {
-        exhibitionService.updateDisplayOrder(id, displayOrder);
-        return ResponseEntity.ok().build();
-    }
-
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete exhibition")
     public ResponseEntity<Void> deleteExhibition(@PathVariable Long id) {

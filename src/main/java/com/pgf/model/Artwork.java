@@ -2,13 +2,10 @@ package com.pgf.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,21 +24,8 @@ public class Artwork extends BaseEntity {
     @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(name = "dimensions")
-    private String dimensions;
-
-    @Column(name = "materials")
-    private String materials;
-
-    @Column(name = "creation_date")
-    private LocalDate creationDate;
-
-    @Column(name = "price", precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @NotNull
-    @Column(name = "is_available", nullable = false)
-    private Boolean isAvailable = true;
+    @Column(name = "description_short", length = 500)
+    private String descriptionShort;
 
     @Column(name = "image_urls", columnDefinition = "TEXT[]")
     private List<String> imageUrls;

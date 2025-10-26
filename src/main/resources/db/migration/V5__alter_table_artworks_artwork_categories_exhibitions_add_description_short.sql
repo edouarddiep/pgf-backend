@@ -1,0 +1,11 @@
+ALTER TABLE artworks DROP COLUMN IF EXISTS dimensions;
+ALTER TABLE artworks DROP COLUMN IF EXISTS materials;
+ALTER TABLE artworks DROP COLUMN IF EXISTS creation_date;
+ALTER TABLE artworks DROP COLUMN IF EXISTS price;
+ALTER TABLE artworks DROP COLUMN IF EXISTS is_available;
+
+ALTER TABLE artworks ADD COLUMN IF NOT EXISTS description_short VARCHAR(255);
+
+ALTER TABLE artwork_categories ADD COLUMN IF NOT EXISTS description_short VARCHAR(255);
+
+ALTER TABLE exhibitions ADD COLUMN IF NOT EXISTS url VARCHAR(255);

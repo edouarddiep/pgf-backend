@@ -23,6 +23,9 @@ public class ArtworkCategory extends BaseEntity {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "description_short", length = 500)
+    private String descriptionShort;
+
     @Column(name = "slug", nullable = false, unique = true)
     private String slug;
 

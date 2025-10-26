@@ -20,6 +20,10 @@ public interface ExhibitionRepository extends JpaRepository<Exhibition, Long> {
 
     List<Exhibition> findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(LocalDate start, LocalDate end);
 
+    List<Exhibition> findByStatusOrderByStartDateAsc(Exhibition.ExhibitionStatus status);
+
+    List<Exhibition> findByStatusOrderByStartDateDesc(Exhibition.ExhibitionStatus status);
+
     @Query("SELECT COALESCE(MAX(e.displayOrder), 0) FROM Exhibition e")
     Optional<Integer> findMaxDisplayOrder();
 }

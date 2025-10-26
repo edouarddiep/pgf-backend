@@ -68,14 +68,6 @@ public class ArtworkService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<ArtworkDto> findAvailableArtworks() {
-        return artworkRepository.findByIsAvailableTrueOrderByDisplayOrderAsc()
-                .stream()
-                .map(artworkMapper::toDto)
-                .toList();
-    }
-
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
 
