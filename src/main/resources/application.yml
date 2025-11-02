@@ -2,16 +2,27 @@ spring:
   application:
     name: pgf-backend
   profiles:
-    active: supabase
+    active: ${SPRING_PROFILES_ACTIVE:supabase}
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
-      enabled: true
 
 server:
+  port: ${PORT:8080}
   address: 0.0.0.0
-  port: 8080
+  compression:
+    enabled: true
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
 
 supabase:
   url: ${SUPABASE_URL}
@@ -25,9 +36,10 @@ app:
       max-height: 800
       jpeg-quality: 0.85
       thumbnail-size: 300
-
   admin:
     password: ${ADMIN_PASSWORD}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
 ---
 spring:
@@ -39,6 +51,10 @@ spring:
     username: ${SUPABASE_DB_USERNAME}
     password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: validate
