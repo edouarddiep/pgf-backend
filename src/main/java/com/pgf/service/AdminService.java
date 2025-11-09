@@ -134,8 +134,4 @@ public class AdminService {
     public void deleteMessage(Long id) {
         messageService.delete(id);
     }
-
-    public void updateExhibitionOrder(Long id, Integer displayOrder) {
-        exhibitionService.updateDisplayOrder(id, displayOrder);
-    }
 }

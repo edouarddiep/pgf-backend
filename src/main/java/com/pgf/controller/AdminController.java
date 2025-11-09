@@ -243,7 +243,7 @@ public class AdminController {
             @RequestParam("file") MultipartFile file) {
 
         try {
-            ImageService.ImageUploadResult result = imageService.uploadImage(file, "exhibitions");
+            ImageService.ImageUploadResult result = imageService.uploadImage(file, "expositions");
 
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", result.imageUrl());
@@ -256,14 +256,112 @@ public class AdminController {
         }
     }
 
-    @PutMapping("/exhibitions/{id}/order")
-    @Operation(summary = "Update exhibition display order")
-    public ResponseEntity<Void> updateExhibitionOrder(
+    @PostMapping(value = "/upload/exhibition-video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload exhibition video")
+    public ResponseEntity<Map<String, String>> uploadExhibitionVideo(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("exhibitionSlug") String exhibitionSlug,
+            @RequestParam("videoIndex") int videoIndex) {
+
+        try {
+            ImageService.VideoUploadResult result = imageService.uploadVideo(file, exhibitionSlug, videoIndex);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("videoUrl", result.videoUrl());
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            log.error("Error uploading exhibition video: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de l'upload de la vidéo"));
+        }
+    }
+
+    @PostMapping(value = "/exhibitions/with-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create exhibition with images")
+    public ResponseEntity<ExhibitionDto> createExhibitionWithImages(
+            @RequestPart("exhibition") String exhibitionJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        ExhibitionDto exhibitionDto = mapper.readValue(exhibitionJson, ExhibitionDto.class);
+
+        if (images != null && !images.isEmpty()) {
+            List<String> uploadedUrls = new ArrayList<>();
+
+            for (MultipartFile image : images) {
+                ImageService.ImageUploadResult result = imageService.uploadImage(image, "exhibitions");
+                uploadedUrls.add(result.imageUrl());
+            }
+
+            exhibitionDto.setImageUrls(uploadedUrls);
+            if (!uploadedUrls.isEmpty()) {
+                exhibitionDto.setImageUrl(uploadedUrls.get(0));
+            }
+        }
+
+        ExhibitionDto created = adminService.createExhibition(exhibitionDto);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @PutMapping(value = "/exhibitions/{id}/with-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update exhibition with images")
+    public ResponseEntity<ExhibitionDto> updateExhibitionWithImages(
             @PathVariable Long id,
-            @RequestBody Map<String, Integer> request) {
-        Integer displayOrder = request.get("displayOrder");
-        adminService.updateExhibitionOrder(id, displayOrder);
-        return ResponseEntity.ok().build();
+            @RequestPart("exhibition") String exhibitionJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        ExhibitionDto exhibitionDto = mapper.readValue(exhibitionJson, ExhibitionDto.class);
+
+        if (images != null && !images.isEmpty()) {
+            List<String> uploadedUrls = new ArrayList<>();
+
+            for (MultipartFile image : images) {
+                ImageService.ImageUploadResult result = imageService.uploadImage(image, "exhibitions");
+                uploadedUrls.add(result.imageUrl());
+            }
+
+            List<String> existingUrls = exhibitionDto.getImageUrls() != null ?
+                    new ArrayList<>(exhibitionDto.getImageUrls()) : new ArrayList<>();
+
+            existingUrls.addAll(uploadedUrls);
+            exhibitionDto.setImageUrls(existingUrls);
+
+            if (exhibitionDto.getImageUrl() == null && !uploadedUrls.isEmpty()) {
+                exhibitionDto.setImageUrl(uploadedUrls.get(0));
+            }
+        }
+
+        ExhibitionDto updated = adminService.updateExhibition(id, exhibitionDto);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping(value = "/upload/exhibition-image-indexed", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload exhibition image with index")
+    public ResponseEntity<Map<String, String>> uploadExhibitionImageIndexed(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("exhibitionSlug") String exhibitionSlug,
+            @RequestParam("imageIndex") int imageIndex) {
+
+        try {
+            ImageService.ImageUploadResult result = imageService.uploadExhibitionImage(file, exhibitionSlug, imageIndex);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("imageUrl", result.imageUrl());
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            log.error("Error uploading exhibition image: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de l'upload de l'image"));
+        }
     }
 
     private String getCategorySlug(Set<Long> categoryIds) {

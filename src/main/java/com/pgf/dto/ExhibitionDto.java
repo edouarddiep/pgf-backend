@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ExhibitionDto {
@@ -26,9 +27,9 @@ public class ExhibitionDto {
 
     private String imageUrl;
 
-    private String url;
+    private List<String> imageUrls;
 
-    private Integer displayOrder;
+    private List<String> videoUrls;
 
     private Exhibition.ExhibitionStatus status;
 

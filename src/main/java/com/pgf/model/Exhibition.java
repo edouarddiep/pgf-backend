@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "exhibitions")
@@ -34,11 +35,11 @@ public class Exhibition extends BaseEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
-    @Column(name = "url")
-    private String url;
+    @Column(name = "image_urls", columnDefinition = "TEXT[]")
+    private List<String> imageUrls;
 
-    @Column(name = "display_order")
-    private Integer displayOrder = 0;
+    @Column(name = "video_urls", columnDefinition = "TEXT[]")
+    private List<String> videoUrls;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

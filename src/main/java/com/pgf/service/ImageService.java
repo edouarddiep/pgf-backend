@@ -1,5 +1,8 @@
 package com.pgf.service;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -13,6 +16,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -45,24 +49,30 @@ public class ImageService {
     public ImageUploadResult uploadImage(MultipartFile file, String categorySlug) throws IOException {
         validateFile(file);
 
-        // Optimiser l'image principale
         byte[] optimizedImage = optimizeImage(file, MAX_WIDTH, MAX_HEIGHT, JPEG_QUALITY);
-
-        // Créer une miniature
         byte[] thumbnail = createThumbnail(file, THUMBNAIL_SIZE);
 
-        // Mapper vers la structure existante
         String supabaseFolder = mapCategoryToSupabaseFolder(categorySlug);
         String fileName = generateFileName(file.getOriginalFilename(), categorySlug);
         String thumbnailName = "thumb_" + fileName;
 
-        // Upload image principale
         String mainImageUrl = uploadToSupabase(optimizedImage, supabaseFolder + "/images", fileName);
-
-        // Upload miniature
         String thumbnailUrl = uploadToSupabase(thumbnail, supabaseFolder + "/thumbnails", thumbnailName);
 
         return new ImageUploadResult(mainImageUrl, thumbnailUrl);
+    }
+
+    public ImageUploadResult uploadExhibitionImage(MultipartFile file, String exhibitionSlug, int imageIndex) throws IOException {
+        validateFile(file);
+
+        byte[] optimizedImage = optimizeImage(file, MAX_WIDTH, MAX_HEIGHT, JPEG_QUALITY);
+
+        String fileName = String.format("image-%d.jpg", imageIndex);
+        String folder = "expositions/" + exhibitionSlug + "/images";
+
+        String imageUrl = uploadToSupabase(optimizedImage, folder, fileName);
+
+        return new ImageUploadResult(imageUrl, null);
     }
 
     private String mapCategoryToSupabaseFolder(String categorySlug) {
@@ -77,17 +87,39 @@ public class ImageService {
             case "sculptures" -> "sculpture";
             case "toiles-jute" -> "toile-de-jute";
             case "yaya" -> "yaya";
-            default -> "nouvelles-oeuvres"; // Fallback pour nouvelles catégories
+            case "exhibitions" -> "exhibitions";
+            default -> "nouvelles-oeuvres";
         };
     }
 
     private byte[] optimizeImage(MultipartFile file, int maxWidth, int maxHeight, float quality) throws IOException {
-        BufferedImage originalImage = ImageIO.read(file.getInputStream());
+        byte[] fileBytes = file.getBytes();
 
-        // Calculer nouvelles dimensions en gardant les proportions
+        BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(fileBytes));
+
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(fileBytes));
+            ExifIFD0Directory exif = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+
+            if (exif != null && exif.containsTag(ExifIFD0Directory.TAG_ORIENTATION)) {
+                int orientation = exif.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+
+                if (orientation == 3) {
+                    originalImage = rotate(originalImage, 180);
+                } else if (orientation == 6) {
+                    originalImage = rotate(originalImage, 90);
+                } else if (orientation == 8) {
+                    originalImage = rotate(originalImage, -90);
+                }
+
+                log.info("Image orientation corrigée: {}", orientation);
+            }
+        } catch (Exception e) {
+            log.warn("Pas de données EXIF: {}", e.getMessage());
+        }
+
         Dimension newDim = calculateDimensions(originalImage.getWidth(), originalImage.getHeight(), maxWidth, maxHeight);
 
-        // Redimensionner avec qualité élevée
         BufferedImage resizedImage = new BufferedImage(newDim.width, newDim.height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = resizedImage.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
@@ -96,14 +128,39 @@ public class ImageService {
         g2d.drawImage(originalImage, 0, 0, newDim.width, newDim.height, null);
         g2d.dispose();
 
-        // Compresser en JPEG avec qualité spécifiée
         return compressToJpeg(resizedImage, quality);
+    }
+
+    private BufferedImage rotate(BufferedImage img, int angle) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+
+        int newW = (angle == 90 || angle == -90) ? h : w;
+        int newH = (angle == 90 || angle == -90) ? w : h;
+
+        BufferedImage rotated = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = rotated.createGraphics();
+
+        if (angle == 90) {
+            g.translate(h, 0);
+            g.rotate(Math.toRadians(90));
+        } else if (angle == -90) {
+            g.translate(0, w);
+            g.rotate(Math.toRadians(-90));
+        } else if (angle == 180) {
+            g.translate(w, h);
+            g.rotate(Math.toRadians(180));
+        }
+
+        g.drawImage(img, 0, 0, null);
+        g.dispose();
+
+        return rotated;
     }
 
     private byte[] createThumbnail(MultipartFile file, int size) throws IOException {
         BufferedImage originalImage = ImageIO.read(file.getInputStream());
 
-        // Créer une miniature carrée avec crop centré
         int sourceSize = Math.min(originalImage.getWidth(), originalImage.getHeight());
         int x = (originalImage.getWidth() - sourceSize) / 2;
         int y = (originalImage.getHeight() - sourceSize) / 2;
@@ -151,11 +208,13 @@ public class ImageService {
         );
     }
 
+
     private String uploadToSupabase(byte[] imageData, String folder, String fileName) throws IOException {
         String filePath = folder + "/" + fileName;
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(serviceKey);
+        headers.set("Authorization", "Bearer " + serviceKey);
+        headers.set("x-upsert", "true");
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         headers.setContentLength(imageData.length);
 
@@ -188,7 +247,7 @@ public class ImageService {
             String filePath = extractFilePathFromUrl(imageUrl);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(serviceKey);
+            headers.set("Authorization", "Bearer " + serviceKey);
             HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
             String deleteUrl = String.format("%s/storage/v1/object/%s/%s", supabaseUrl, bucketName, filePath);
@@ -221,7 +280,7 @@ public class ImageService {
             throw new IllegalArgumentException("File is empty");
         }
 
-        if (file.getSize() > 50 * 1024 * 1024) { // 50MB max
+        if (file.getSize() > 50 * 1024 * 1024) {
             throw new IllegalArgumentException("File too large");
         }
 
@@ -231,7 +290,34 @@ public class ImageService {
         }
     }
 
-    public record ImageUploadResult(String imageUrl, String thumbnailUrl) {
+    public VideoUploadResult uploadVideo(MultipartFile file, String exhibitionSlug, int videoIndex) throws IOException {
+        validateVideoFile(file);
 
+        String fileName = String.format("video-%d.mp4", videoIndex);
+        String folder = "expositions/" + exhibitionSlug + "/videos";
+
+        String videoUrl = uploadToSupabase(file.getBytes(), folder, fileName);
+
+        return new VideoUploadResult(videoUrl);
+    }
+
+    private void validateVideoFile(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        if (file.getSize() > 500 * 1024 * 1024) {
+            throw new IllegalArgumentException("Video too large (max 500MB)");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.equals("video/mp4")) {
+            throw new IllegalArgumentException("Only MP4 videos are supported");
+        }
+    }
+
+    public record VideoUploadResult(String videoUrl) {}
+
+    public record ImageUploadResult(String imageUrl, String thumbnailUrl) {
     }
 }

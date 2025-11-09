@@ -22,7 +22,7 @@ public class ExhibitionService {
 
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findAll() {
-        return exhibitionRepository.findAllByOrderByDisplayOrderAscStartDateDesc()
+        return exhibitionRepository.findAllByOrderByStartDateDesc()
                 .stream()
                 .map(this::mapWithCalculatedStatus)
                 .toList();
@@ -64,10 +64,6 @@ public class ExhibitionService {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
         calculateAndSetStatus(exhibition);
 
-        if (exhibition.getDisplayOrder() == null) {
-            exhibition.setDisplayOrder(getNextDisplayOrder());
-        }
-
         Exhibition savedExhibition = exhibitionRepository.save(exhibition);
         return mapWithCalculatedStatus(savedExhibition);
     }
@@ -79,6 +75,7 @@ public class ExhibitionService {
 
         exhibitionMapper.updateEntityFromDto(exhibitionDto, existingExhibition);
         calculateAndSetStatus(existingExhibition);
+
         Exhibition updatedExhibition = exhibitionRepository.save(existingExhibition);
         return mapWithCalculatedStatus(updatedExhibition);
     }
@@ -89,14 +86,6 @@ public class ExhibitionService {
             throw new EntityNotFoundException("Exhibition not found with id: " + id);
         }
         exhibitionRepository.deleteById(id);
-    }
-
-    @Transactional
-    public void updateDisplayOrder(Long id, Integer newOrder) {
-        Exhibition exhibition = exhibitionRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
-        exhibition.setDisplayOrder(newOrder);
-        exhibitionRepository.save(exhibition);
     }
 
     private ExhibitionDto mapWithCalculatedStatus(Exhibition exhibition) {
@@ -119,9 +108,5 @@ public class ExhibitionService {
         } else {
             exhibition.setStatus(Exhibition.ExhibitionStatus.ONGOING);
         }
-    }
-
-    private Integer getNextDisplayOrder() {
-        return exhibitionRepository.findMaxDisplayOrder().orElse(0) + 1;
     }
 }

@@ -207,7 +207,6 @@ class PgfIntegrationTest {
         newExhibition.setDescription("A wonderful test exhibition");
         newExhibition.setLocation("Test Gallery");
         newExhibition.setAddress("123 Art Street, Paris");
-        newExhibition.setUrl("https://example.com/exhibition");
         newExhibition.setStartDate(LocalDate.now().plusDays(30));
         newExhibition.setEndDate(LocalDate.now().plusDays(60));
         newExhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
