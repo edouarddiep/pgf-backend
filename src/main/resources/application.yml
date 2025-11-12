@@ -76,6 +76,9 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+flyway:
+  repair-on-startup: false
+
 logging:
   level:
     com.zaxxer.hikari: DEBUG
