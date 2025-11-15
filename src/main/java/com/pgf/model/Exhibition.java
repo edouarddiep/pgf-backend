@@ -41,6 +41,12 @@ public class Exhibition extends BaseEntity {
     @Column(name = "video_urls", columnDefinition = "TEXT[]")
     private List<String> videoUrls;
 
+    @Column(name = "credits", columnDefinition = "TEXT")
+    private String credits;
+
+    @Column(name = "website_url", length = 500)
+    private String websiteUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ExhibitionStatus status = ExhibitionStatus.UPCOMING;

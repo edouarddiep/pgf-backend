@@ -36,4 +36,8 @@ public class ExhibitionDto {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private String credits;
+
+    private String websiteUrl;
 }
