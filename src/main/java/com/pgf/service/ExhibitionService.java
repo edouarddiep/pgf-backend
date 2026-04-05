@@ -6,6 +6,8 @@ import com.pgf.model.Exhibition;
 import com.pgf.repository.ExhibitionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class ExhibitionService {
     private final ExhibitionRepository exhibitionRepository;
     private final ExhibitionMapper exhibitionMapper;
 
+    @Cacheable("exhibitions")
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findAll() {
         return exhibitionRepository.findAllByOrderByStartDateDesc()
@@ -59,6 +62,7 @@ public class ExhibitionService {
                 .toList();
     }
 
+    @CacheEvict(value = "exhibitions", allEntries = true)
     @Transactional
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
@@ -68,6 +72,7 @@ public class ExhibitionService {
         return mapWithCalculatedStatus(savedExhibition);
     }
 
+    @CacheEvict(value = "exhibitions", allEntries = true)
     @Transactional
     public ExhibitionDto update(Long id, ExhibitionDto exhibitionDto) {
         Exhibition existingExhibition = exhibitionRepository.findById(id)
@@ -80,6 +85,7 @@ public class ExhibitionService {
         return mapWithCalculatedStatus(updatedExhibition);
     }
 
+    @CacheEvict(value = "exhibitions", allEntries = true)
     @Transactional
     public void delete(Long id) {
         if (!exhibitionRepository.existsById(id)) {

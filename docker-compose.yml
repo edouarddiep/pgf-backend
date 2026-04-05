@@ -9,7 +9,7 @@ services:
       - SPRING_PROFILES_ACTIVE=supabase
       - SUPABASE_DATABASE_URL=jdbc:postgresql://db.bhjpavcxhymxcadesnqy.supabase.co:5432/postgres?sslmode=require
       - SUPABASE_DB_USERNAME=postgres
-      - SUPABASE_DB_PASSWORD=QrMyobJ8X4xlLZVe
+      - SUPABASE_DB_PASSWORD=kSa7Zu8JYfRi73XT
       - SUPABASE_URL=https://bhjpavcxhymxcadesnqy.supabase.co
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-pgf-2025}

@@ -6,6 +6,8 @@ import com.pgf.mapper.ArtworkCategoryMapper;
 import com.pgf.model.ArtworkCategory;
 import com.pgf.repository.ArtworkCategoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ public class ArtworkCategoryService {
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkCategoryMapper categoryMapper;
 
+    @Cacheable("categories")
     @Transactional(readOnly = true)
     public List<ArtworkCategoryDto> findAll() {
         return categoryRepository.findAllByOrderByDisplayOrderAscNameAsc()
@@ -41,6 +44,7 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(category);
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     public ArtworkCategoryDto create(ArtworkCategoryDto categoryDto) {
         if (categoryRepository.existsBySlug(categoryDto.getSlug())) {
             throw new IllegalArgumentException("Category with slug already exists: " + categoryDto.getSlug());
@@ -54,6 +58,7 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(savedCategory);
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     public ArtworkCategoryDto update(Long id, ArtworkCategoryDto categoryDto) {
         ArtworkCategory existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
@@ -63,6 +68,7 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(updatedCategory);
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     public void delete(Long id) {
         if (!categoryRepository.existsById(id)) {
             throw new EntityNotFoundException("Category not found with id: " + id);

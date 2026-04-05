@@ -9,6 +9,8 @@ import com.pgf.repository.ArtworkCategoryRepository;
 import com.pgf.repository.ArtworkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,7 @@ public class ArtworkService {
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkMapper artworkMapper;
 
+    @Cacheable("artworks")
     @Transactional(readOnly = true)
     public List<ArtworkDto> findAll() {
         return artworkRepository.findAll(Sort.by("displayOrder").ascending())
@@ -68,6 +71,7 @@ public class ArtworkService {
                 .toList();
     }
 
+    @CacheEvict(value = "artworks", allEntries = true)
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
 
@@ -88,6 +92,7 @@ public class ArtworkService {
         return artworkMapper.toDto(savedArtwork);
     }
 
+    @CacheEvict(value = "artworks", allEntries = true)
     public ArtworkDto update(Long id, ArtworkDto artworkDto) {
         Artwork existingArtwork = artworkRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
@@ -131,6 +136,7 @@ public class ArtworkService {
         return artworkMapper.toDto(savedArtwork);
     }
 
+    @CacheEvict(value = "artworks", allEntries = true)
     public void delete(Long id) {
         if (!artworkRepository.existsById(id)) {
             throw new EntityNotFoundException("Artwork not found with id: " + id);
