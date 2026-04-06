@@ -32,9 +32,6 @@ public class ArtworkCategory extends BaseEntity {
     @Column(name = "display_order")
     private Integer displayOrder = 0;
 
-    @Column(name = "main_image_url")
-    private String mainImageUrl;
-
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 

@@ -1,0 +1,1 @@
+ALTER TABLE artwork_categories DROP COLUMN IF EXISTS main_image_url;

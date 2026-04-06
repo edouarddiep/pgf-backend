@@ -364,6 +364,21 @@ public class AdminController {
         }
     }
 
+    @PostMapping(value = "/upload/category-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload category image")
+    public ResponseEntity<Map<String, String>> uploadCategoryImage(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("categorySlug") String categorySlug) {
+        try {
+            ImageService.ImageUploadResult result = imageService.uploadImage(file, categorySlug);
+            return ResponseEntity.ok(Map.of("thumbnailUrl", result.thumbnailUrl()));
+        } catch (IOException e) {
+            log.error("Error uploading category image: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de l'upload de l'image"));
+        }
+    }
+
     private String getCategorySlug(Set<Long> categoryIds) {
         if (categoryIds == null || categoryIds.isEmpty()) {
             return "general";

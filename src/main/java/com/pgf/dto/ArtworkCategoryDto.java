@@ -24,8 +24,6 @@ public class ArtworkCategoryDto {
 
     private Integer displayOrder = 0;
 
-    private String mainImageUrl;
-
     private String thumbnailUrl;
 
     private LocalDateTime createdAt;

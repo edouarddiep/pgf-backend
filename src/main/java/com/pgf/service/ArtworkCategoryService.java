@@ -5,6 +5,7 @@ import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ArtworkCategoryMapper;
 import com.pgf.model.ArtworkCategory;
 import com.pgf.repository.ArtworkCategoryRepository;
+import com.pgf.repository.ArtworkRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,6 +20,7 @@ import java.util.List;
 public class ArtworkCategoryService {
 
     private final ArtworkCategoryRepository categoryRepository;
+    private final ArtworkRepository artworkRepository;
     private final ArtworkCategoryMapper categoryMapper;
 
     @Cacheable("categories")
@@ -70,8 +72,11 @@ public class ArtworkCategoryService {
 
     @CacheEvict(value = "categories", allEntries = true)
     public void delete(Long id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new EntityNotFoundException("Category not found with id: " + id);
+        ArtworkCategory category = categoryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+        long artworkCount = artworkRepository.countByCategoriesContaining(category);
+        if (artworkCount > 0) {
+            throw new IllegalStateException("Impossible de supprimer une catégorie contenant des œuvres (" + artworkCount + " œuvre(s) liée(s))");
         }
         categoryRepository.deleteById(id);
     }
