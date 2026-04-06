@@ -26,7 +26,7 @@ public class ArtworkCategoryService {
     @Cacheable("categories")
     @Transactional(readOnly = true)
     public List<ArtworkCategoryDto> findAll() {
-        return categoryRepository.findAllByOrderByDisplayOrderAscNameAsc()
+        return categoryRepository.findAllByOrderByNameAsc()
                 .stream()
                 .map(categoryMapper::toDto)
                 .toList();

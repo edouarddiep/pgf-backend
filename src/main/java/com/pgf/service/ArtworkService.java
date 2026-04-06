@@ -32,7 +32,7 @@ public class ArtworkService {
     @Cacheable("artworks")
     @Transactional(readOnly = true)
     public List<ArtworkDto> findAll() {
-        return artworkRepository.findAll(Sort.by("displayOrder").ascending())
+        return artworkRepository.findAll(Sort.by("title").ascending())
                 .stream()
                 .map(artworkMapper::toDto)
                 .toList();
@@ -41,9 +41,7 @@ public class ArtworkService {
     @Transactional(readOnly = true)
     public ArtworkDto findById(Long id) {
         return artworkRepository.findByIdWithCategories(id)
-                .map(artwork -> {
-                    return artworkMapper.toDto(artwork);
-                })
+                .map(artworkMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
     }
 
@@ -63,19 +61,10 @@ public class ArtworkService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<ArtworkDto> findByCategoriesIdIn(Set<Long> categoryIds) {
-        return artworkRepository.findByCategoriesIdIn(categoryIds)
-                .stream()
-                .map(artworkMapper::toDto)
-                .toList();
-    }
-
     @CacheEvict(value = "artworks", allEntries = true)
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
 
-        // Gestion explicite des catégories
         if (artworkDto.getCategoryIds() != null && !artworkDto.getCategoryIds().isEmpty()) {
             Set<ArtworkCategory> categories = new HashSet<>(categoryRepository.findAllById(artworkDto.getCategoryIds()));
             if (categories.isEmpty()) {
@@ -88,7 +77,6 @@ public class ArtworkService {
 
         Artwork savedArtwork = artworkRepository.save(artwork);
         log.info("Created artwork: {} with {} categories", savedArtwork.getTitle(), savedArtwork.getCategories().size());
-
         return artworkMapper.toDto(savedArtwork);
     }
 
@@ -97,14 +85,10 @@ public class ArtworkService {
         Artwork existingArtwork = artworkRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
 
-        // Mise à jour des champs de base
         artworkMapper.updateEntityFromDto(artworkDto, existingArtwork);
 
-        // Gestion explicite des catégories
         if (artworkDto.getCategoryIds() != null) {
-            // Vider les catégories existantes
             existingArtwork.getCategories().clear();
-
             if (!artworkDto.getCategoryIds().isEmpty()) {
                 Set<ArtworkCategory> newCategories = new HashSet<>(categoryRepository.findAllById(artworkDto.getCategoryIds()));
                 if (newCategories.isEmpty()) {
@@ -118,7 +102,6 @@ public class ArtworkService {
 
         Artwork updatedArtwork = artworkRepository.save(existingArtwork);
         log.info("Updated artwork: {} with {} categories", updatedArtwork.getTitle(), updatedArtwork.getCategories().size());
-
         return artworkMapper.toDto(updatedArtwork);
     }
 
@@ -132,8 +115,7 @@ public class ArtworkService {
             artwork.setCategories(categories);
         }
 
-        Artwork savedArtwork = artworkRepository.save(artwork);
-        return artworkMapper.toDto(savedArtwork);
+        return artworkMapper.toDto(artworkRepository.save(artwork));
     }
 
     @CacheEvict(value = "artworks", allEntries = true)

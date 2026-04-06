@@ -17,10 +17,10 @@ public interface ArtworkRepository extends JpaRepository<Artwork, Long> {
     @Query("SELECT DISTINCT a FROM Artwork a LEFT JOIN FETCH a.categories WHERE a.id = :id")
     Optional<Artwork> findByIdWithCategories(@Param("id") Long id);
 
-    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.id IN :categoryIds")
+    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.id IN :categoryIds ORDER BY a.title ASC")
     List<Artwork> findByCategoriesIdIn(@Param("categoryIds") Set<Long> categoryIds);
 
-    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.slug = :slug")
+    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.slug = :slug ORDER BY a.title ASC")
     List<Artwork> findByCategorySlug(@Param("slug") String slug);
 
     @Query("SELECT COUNT(a) FROM Artwork a JOIN a.categories c WHERE c = :category")

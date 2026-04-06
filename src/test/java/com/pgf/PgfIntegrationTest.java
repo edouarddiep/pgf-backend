@@ -60,7 +60,6 @@ class PgfIntegrationTest {
         newCategory.setDescription("Category for testing");
         newCategory.setDescriptionShort("Test category short");
         newCategory.setSlug("test-category");
-        newCategory.setDisplayOrder(10);
 
         mockMvc.perform(post("/api/categories")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,7 +85,6 @@ class PgfIntegrationTest {
         newArtwork.setDescriptionShort("Beautiful artwork");
         newArtwork.setImageUrls(List.of("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
         newArtwork.setMainImageUrl("https://example.com/image1.jpg");
-        newArtwork.setDisplayOrder(1);
         newArtwork.setCategoryIds(Set.of(1L));
 
         mockMvc.perform(post("/api/artworks")
@@ -106,7 +104,6 @@ class PgfIntegrationTest {
         newArtwork.setDescription("Artwork belonging to multiple categories");
         newArtwork.setImageUrls(List.of("https://example.com/image1.jpg"));
         newArtwork.setMainImageUrl("https://example.com/image1.jpg");
-        newArtwork.setDisplayOrder(1);
         newArtwork.setCategoryIds(Set.of(1L, 2L));
 
         mockMvc.perform(post("/api/artworks")
@@ -375,7 +372,6 @@ class PgfIntegrationTest {
         newArtwork.setDescriptionShort("Admin artwork");
         newArtwork.setImageUrls(List.of("https://example.com/admin-image.jpg"));
         newArtwork.setMainImageUrl("https://example.com/admin-image.jpg");
-        newArtwork.setDisplayOrder(1);
         newArtwork.setCategoryIds(Set.of(1L, 2L));
 
         mockMvc.perform(post("/api/admin/artworks")

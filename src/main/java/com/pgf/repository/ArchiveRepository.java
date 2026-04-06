@@ -6,5 +6,5 @@ import java.util.List;
 
 @Repository
 public interface ArchiveRepository extends BaseRepository<Archive> {
-    List<Archive> findAllByOrderByYearDescDisplayOrderAsc();
+    List<Archive> findAllByOrderByYearDescTitleAsc();
 }

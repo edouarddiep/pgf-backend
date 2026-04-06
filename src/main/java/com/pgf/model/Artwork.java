@@ -33,9 +33,6 @@ public class Artwork extends BaseEntity {
     @Column(name = "main_image_url")
     private String mainImageUrl;
 
-    @Column(name = "display_order")
-    private Integer displayOrder;
-
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "artwork_categories_mapping",

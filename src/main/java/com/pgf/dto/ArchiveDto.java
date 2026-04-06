@@ -10,6 +10,5 @@ public class ArchiveDto {
     private Integer year;
     private String description;
     private String thumbnailUrl;
-    private Integer displayOrder;
     private List<ArchiveFileDto> files;
 }

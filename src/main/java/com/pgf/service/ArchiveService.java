@@ -21,7 +21,7 @@ public class ArchiveService {
 
     @Transactional(readOnly = true)
     public List<ArchiveDto> findAll() {
-        return archiveRepository.findAllByOrderByYearDescDisplayOrderAsc()
+        return archiveRepository.findAllByOrderByYearDescTitleAsc()
                 .stream()
                 .map(archiveMapper::toDto)
                 .toList();

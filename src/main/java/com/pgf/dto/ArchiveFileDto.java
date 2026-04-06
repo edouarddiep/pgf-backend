@@ -9,5 +9,4 @@ public class ArchiveFileDto {
     private ArchiveFile.FileType fileType;
     private String fileUrl;
     private String fileName;
-    private Integer displayOrder;
 }

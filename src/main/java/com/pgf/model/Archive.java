@@ -29,10 +29,7 @@ public class Archive extends BaseEntity {
     @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;
 
-    @Column(name = "display_order")
-    private Integer displayOrder = 0;
-
     @OneToMany(mappedBy = "archive", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC")
+    @OrderBy("fileName ASC")
     private List<ArchiveFile> files = new ArrayList<>();
 }

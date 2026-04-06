@@ -27,9 +27,6 @@ public class ArchiveFile extends BaseEntity {
     @Column(name = "file_name")
     private String fileName;
 
-    @Column(name = "display_order")
-    private Integer displayOrder = 0;
-
     public enum FileType {
         IMAGE,
         VIDEO,

@@ -36,8 +36,6 @@ public class ArtworkDto {
 
     private String mainImageUrl;
 
-    private Integer displayOrder;
-
     @JsonProperty("categoryIds")
     @JsonDeserialize(as = HashSet.class)
     private Set<Long> categoryIds;

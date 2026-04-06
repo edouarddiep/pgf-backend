@@ -22,8 +22,6 @@ public class ArtworkCategoryDto {
     @Pattern(regexp = "^[a-z0-9-]+$", message = "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets")
     private String slug;
 
-    private Integer displayOrder = 0;
-
     private String thumbnailUrl;
 
     private LocalDateTime createdAt;

@@ -29,9 +29,6 @@ public class ArtworkCategory extends BaseEntity {
     @Column(name = "slug", nullable = false, unique = true)
     private String slug;
 
-    @Column(name = "display_order")
-    private Integer displayOrder = 0;
-
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
