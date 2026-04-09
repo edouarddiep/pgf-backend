@@ -292,12 +292,11 @@ public class ImageService {
 
     public VideoUploadResult uploadVideo(MultipartFile file, String exhibitionSlug, int videoIndex) throws IOException {
         validateVideoFile(file);
-
-        String fileName = String.format("video-%d.mp4", videoIndex);
+        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "video.mp4";
+        String ext = originalFilename.contains(".") ? originalFilename.substring(originalFilename.lastIndexOf('.')) : ".mp4";
+        String fileName = String.format("video-%d%s", videoIndex, ext);
         String folder = "expositions/" + exhibitionSlug + "/videos";
-
         String videoUrl = uploadToSupabase(file.getBytes(), folder, fileName);
-
         return new VideoUploadResult(videoUrl);
     }
 
@@ -311,8 +310,8 @@ public class ImageService {
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.equals("video/mp4")) {
-            throw new IllegalArgumentException("Only MP4 videos are supported");
+        if (contentType == null || (!contentType.equals("video/mp4") && !contentType.equals("video/quicktime") && !contentType.equals("video/x-msvideo"))) {
+            throw new IllegalArgumentException("Only MP4, MOV and AVI videos are supported");
         }
     }
 

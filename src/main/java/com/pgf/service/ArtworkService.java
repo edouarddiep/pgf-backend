@@ -28,6 +28,7 @@ public class ArtworkService {
     private final ArtworkRepository artworkRepository;
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkMapper artworkMapper;
+    private final ImageService imageService;
 
     @Cacheable("artworks")
     @Transactional(readOnly = true)
@@ -120,8 +121,10 @@ public class ArtworkService {
 
     @CacheEvict(value = "artworks", allEntries = true)
     public void delete(Long id) {
-        if (!artworkRepository.existsById(id)) {
-            throw new EntityNotFoundException("Artwork not found with id: " + id);
+        Artwork artwork = artworkRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
+        if (artwork.getImageUrls() != null) {
+            artwork.getImageUrls().forEach(imageService::deleteImage);
         }
         artworkRepository.deleteById(id);
     }

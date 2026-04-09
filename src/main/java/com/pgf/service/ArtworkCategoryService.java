@@ -22,6 +22,7 @@ public class ArtworkCategoryService {
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkRepository artworkRepository;
     private final ArtworkCategoryMapper categoryMapper;
+    private final ImageService imageService;
 
     @Cacheable("categories")
     @Transactional(readOnly = true)
@@ -77,6 +78,9 @@ public class ArtworkCategoryService {
         long artworkCount = artworkRepository.countByCategoriesContaining(category);
         if (artworkCount > 0) {
             throw new IllegalStateException("Impossible de supprimer une catégorie contenant des œuvres (" + artworkCount + " œuvre(s) liée(s))");
+        }
+        if (category.getThumbnailUrl() != null) {
+            imageService.deleteImage(category.getThumbnailUrl());
         }
         categoryRepository.deleteById(id);
     }

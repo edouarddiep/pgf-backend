@@ -21,6 +21,7 @@ public class ExhibitionService {
 
     private final ExhibitionRepository exhibitionRepository;
     private final ExhibitionMapper exhibitionMapper;
+    private final ImageService imageService;
 
     @Cacheable("exhibitions")
     @Transactional(readOnly = true)
@@ -88,8 +89,13 @@ public class ExhibitionService {
     @CacheEvict(value = "exhibitions", allEntries = true)
     @Transactional
     public void delete(Long id) {
-        if (!exhibitionRepository.existsById(id)) {
-            throw new EntityNotFoundException("Exhibition not found with id: " + id);
+        Exhibition exhibition = exhibitionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
+        if (exhibition.getImageUrls() != null) {
+            exhibition.getImageUrls().forEach(imageService::deleteImage);
+        }
+        if (exhibition.getVideoUrls() != null) {
+            exhibition.getVideoUrls().forEach(imageService::deleteImage);
         }
         exhibitionRepository.deleteById(id);
     }
