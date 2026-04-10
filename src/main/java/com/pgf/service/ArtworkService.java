@@ -28,7 +28,7 @@ public class ArtworkService {
     private final ArtworkRepository artworkRepository;
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkMapper artworkMapper;
-    private final ImageService imageService;
+    private final FileUploadService imageService;
 
     @Cacheable("artworks")
     @Transactional(readOnly = true)

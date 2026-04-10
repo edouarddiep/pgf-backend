@@ -29,7 +29,7 @@ import java.util.*;
 public class AdminController {
 
     private final AdminService adminService;
-    private final ImageService imageService;
+    private final FileUploadService fileUploadService;
 
     @PostMapping("/auth/login")
     @Operation(summary = "Admin login")
@@ -118,7 +118,7 @@ public class AdminController {
             String categorySlug = getCategorySlug(artworkDto.getCategoryIds());
 
             for (MultipartFile image : images) {
-                ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
+                FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(image, categorySlug);
                 uploadedUrls.add(result.imageUrl());
             }
 
@@ -150,7 +150,7 @@ public class AdminController {
             String categorySlug = getCategorySlug(artworkDto.getCategoryIds());
 
             for (MultipartFile image : images) {
-                ImageService.ImageUploadResult result = imageService.uploadImage(image, categorySlug);
+                FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(image, categorySlug);
                 uploadedUrls.add(result.imageUrl());
             }
 
@@ -195,6 +195,32 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // Archives
+    @GetMapping("/archives")
+    @Operation(summary = "Get all archives for admin")
+    public ResponseEntity<List<ArchiveDto>> getArchives() {
+        return ResponseEntity.ok(adminService.getAllArchives());
+    }
+
+    @PostMapping("/archives")
+    @Operation(summary = "Create archive")
+    public ResponseEntity<ArchiveDto> createArchive(@Valid @RequestBody ArchiveDto dto) {
+        return new ResponseEntity<>(adminService.createArchive(dto), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/archives/{id}")
+    @Operation(summary = "Update archive")
+    public ResponseEntity<ArchiveDto> updateArchive(@PathVariable Long id, @Valid @RequestBody ArchiveDto dto) {
+        return ResponseEntity.ok(adminService.updateArchive(id, dto));
+    }
+
+    @DeleteMapping("/archives/{id}")
+    @Operation(summary = "Delete archive")
+    public ResponseEntity<Void> deleteArchive(@PathVariable Long id) {
+        adminService.deleteArchive(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // Messages de contact
     @GetMapping("/messages")
     @Operation(summary = "Get all contact messages")
@@ -233,7 +259,7 @@ public class AdminController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "category", defaultValue = "general") String category) throws IOException {
 
-        ImageService.ImageUploadResult result = imageService.uploadImage(file, category);
+        FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(file, category);
         return ResponseEntity.ok(new ImageUploadResponse(result.imageUrl()));
     }
 
@@ -243,7 +269,7 @@ public class AdminController {
             @RequestParam("file") MultipartFile file) {
 
         try {
-            ImageService.ImageUploadResult result = imageService.uploadImage(file, "expositions");
+            FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(file, "expositions");
 
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", result.imageUrl());
@@ -264,7 +290,7 @@ public class AdminController {
             @RequestParam("videoIndex") int videoIndex) {
 
         try {
-            ImageService.VideoUploadResult result = imageService.uploadVideo(file, exhibitionSlug, videoIndex);
+            FileUploadService.VideoUploadResult result = fileUploadService.uploadVideo(file, exhibitionSlug, videoIndex);
 
             Map<String, String> response = new HashMap<>();
             response.put("videoUrl", result.videoUrl());
@@ -293,7 +319,7 @@ public class AdminController {
             List<String> uploadedUrls = new ArrayList<>();
 
             for (MultipartFile image : images) {
-                ImageService.ImageUploadResult result = imageService.uploadImage(image, "exhibitions");
+                FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(image, "exhibitions");
                 uploadedUrls.add(result.imageUrl());
             }
 
@@ -324,7 +350,7 @@ public class AdminController {
             List<String> uploadedUrls = new ArrayList<>();
 
             for (MultipartFile image : images) {
-                ImageService.ImageUploadResult result = imageService.uploadImage(image, "exhibitions");
+                FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(image, "exhibitions");
                 uploadedUrls.add(result.imageUrl());
             }
 
@@ -351,7 +377,7 @@ public class AdminController {
             @RequestParam("imageIndex") int imageIndex) {
 
         try {
-            ImageService.ImageUploadResult result = imageService.uploadExhibitionImage(file, exhibitionSlug, imageIndex);
+            FileUploadService.ImageUploadResult result = fileUploadService.uploadExhibitionImage(file, exhibitionSlug, imageIndex);
 
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", result.imageUrl());
@@ -370,7 +396,7 @@ public class AdminController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("categorySlug") String categorySlug) {
         try {
-            ImageService.ImageUploadResult result = imageService.uploadImage(file, categorySlug);
+            FileUploadService.ImageUploadResult result = fileUploadService.uploadImage(file, categorySlug);
             return ResponseEntity.ok(Map.of("thumbnailUrl", result.thumbnailUrl()));
         } catch (IOException e) {
             log.error("Error uploading category image: {}", e.getMessage(), e);
@@ -391,8 +417,19 @@ public class AdminController {
                 .orElse("general");
     }
 
-    private String sanitizeForPath(String input) {
-        return input.replaceAll("[^a-zA-Z0-9\\-_]", "-").toLowerCase();
+    @PostMapping(value = "/upload/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload any file (PDF, audio, video) without processing")
+    public ResponseEntity<Map<String, String>> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "folder", defaultValue = "archives") String folder) {
+        try {
+            String fileUrl = fileUploadService.uploadFile(file, folder);
+            return ResponseEntity.ok(Map.of("fileUrl", fileUrl));
+        } catch (IOException e) {
+            log.error("Error uploading file: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de l'upload du fichier"));
+        }
     }
 
     public record AdminLoginRequest(String password) {}

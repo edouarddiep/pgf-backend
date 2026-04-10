@@ -1,9 +1,6 @@
 package com.pgf.service;
 
-import com.pgf.dto.ArtworkCategoryDto;
-import com.pgf.dto.ArtworkDto;
-import com.pgf.dto.ContactMessageDto;
-import com.pgf.dto.ExhibitionDto;
+import com.pgf.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +19,7 @@ public class AdminService {
     private final ArtworkService artworkService;
     private final ArtworkCategoryService categoryService;
     private final ExhibitionService exhibitionService;
+    private final ArchiveService archiveService;
     private final ContactMessageService messageService;
 
     @Value("${app.admin.password:pgf-admin-2025}")
@@ -42,7 +40,7 @@ public class AdminService {
     }
 
     // ===============================================
-    // ARTWORKS MANAGEMENT (Délégation)
+    // ARTWORKS MANAGEMENT
     // ===============================================
 
     @Transactional(readOnly = true)
@@ -67,7 +65,7 @@ public class AdminService {
     }
 
     // ===============================================
-    // CATEGORIES MANAGEMENT (Délégation)
+    // CATEGORIES MANAGEMENT
     // ===============================================
 
     @Transactional(readOnly = true)
@@ -88,7 +86,7 @@ public class AdminService {
     }
 
     // ===============================================
-    // EXHIBITIONS MANAGEMENT (Délégation)
+    // EXHIBITIONS MANAGEMENT
     // ===============================================
 
     @Transactional(readOnly = true)
@@ -109,7 +107,27 @@ public class AdminService {
     }
 
     // ===============================================
-    // CONTACT MESSAGES MANAGEMENT (Délégation)
+    // ARCHIVES MANAGEMENT
+    // ===============================================
+
+    public List<ArchiveDto> getAllArchives() {
+        return archiveService.findAll();
+    }
+
+    public ArchiveDto createArchive(ArchiveDto dto) {
+        return archiveService.create(dto);
+    }
+
+    public ArchiveDto updateArchive(Long id, ArchiveDto dto) {
+        return archiveService.update(id, dto);
+    }
+
+    public void deleteArchive(Long id) {
+        archiveService.delete(id);
+    }
+
+    // ===============================================
+    // CONTACT MESSAGES MANAGEMENT
     // ===============================================
 
     @Transactional(readOnly = true)

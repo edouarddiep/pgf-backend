@@ -27,7 +27,7 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class ImageService {
+public class FileUploadService {
 
     @Value("${supabase.url}")
     private String supabaseUrl;
@@ -313,6 +313,33 @@ public class ImageService {
         if (contentType == null || (!contentType.equals("video/mp4") && !contentType.equals("video/quicktime") && !contentType.equals("video/x-msvideo"))) {
             throw new IllegalArgumentException("Only MP4, MOV and AVI videos are supported");
         }
+    }
+
+    public String uploadFile(MultipartFile file, String folder) throws IOException {
+        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String fileName = timestamp + "_" + UUID.randomUUID().toString().substring(0, 8) + "_" + sanitizeFilename(originalFilename);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + serviceKey);
+        headers.set("x-upsert", "true");
+        headers.setContentType(MediaType.parseMediaType(
+                file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE
+        ));
+
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(file.getBytes(), headers);
+        String uploadUrl = String.format("%s/storage/v1/object/%s/%s/%s", supabaseUrl, bucketName, folder, fileName);
+
+        ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, requestEntity, String.class);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new IOException("Upload failed: " + response.getStatusCode());
+        }
+
+        return String.format("%s/storage/v1/object/public/%s/%s/%s", supabaseUrl, bucketName, folder, fileName);
+    }
+
+    private String sanitizeFilename(String filename) {
+        return filename.replaceAll("[^a-zA-Z0-9.\\-_]", "_");
     }
 
     public record VideoUploadResult(String videoUrl) {}

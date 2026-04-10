@@ -21,7 +21,7 @@ public class ExhibitionService {
 
     private final ExhibitionRepository exhibitionRepository;
     private final ExhibitionMapper exhibitionMapper;
-    private final ImageService imageService;
+    private final FileUploadService imageService;
 
     @Cacheable("exhibitions")
     @Transactional(readOnly = true)

@@ -22,7 +22,7 @@ public class ArtworkCategoryService {
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkRepository artworkRepository;
     private final ArtworkCategoryMapper categoryMapper;
-    private final ImageService imageService;
+    private final FileUploadService imageService;
 
     @Cacheable("categories")
     @Transactional(readOnly = true)
