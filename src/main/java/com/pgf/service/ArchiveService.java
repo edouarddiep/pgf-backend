@@ -36,18 +36,21 @@ public class ArchiveService {
     @Transactional
     public ArchiveDto create(ArchiveDto archiveDto) {
         Archive archive = archiveMapper.toEntity(archiveDto);
-        Archive savedArchive = archiveRepository.save(archive);
-        return archiveMapper.toDto(savedArchive);
+        if (archive.getFiles() != null) {
+            archive.getFiles().forEach(f -> f.setArchive(archive));
+        }
+        return archiveMapper.toDto(archiveRepository.save(archive));
     }
 
     @Transactional
     public ArchiveDto update(Long id, ArchiveDto archiveDto) {
         Archive existingArchive = archiveRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Archive not found with id: " + id));
-
         archiveMapper.updateEntityFromDto(archiveDto, existingArchive);
-        Archive updatedArchive = archiveRepository.save(existingArchive);
-        return archiveMapper.toDto(updatedArchive);
+        if (existingArchive.getFiles() != null) {
+            existingArchive.getFiles().forEach(f -> f.setArchive(existingArchive));
+        }
+        return archiveMapper.toDto(archiveRepository.save(existingArchive));
     }
 
     @Transactional

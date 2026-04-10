@@ -2,6 +2,7 @@ package com.pgf.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -15,7 +16,7 @@ public class ArchiveFile extends BaseEntity {
     @JoinColumn(name = "archive_id", nullable = false)
     private Archive archive;
 
-    @NotBlank
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "file_type", nullable = false)
     private FileType fileType;
@@ -28,9 +29,6 @@ public class ArchiveFile extends BaseEntity {
     private String fileName;
 
     public enum FileType {
-        IMAGE,
-        VIDEO,
-        AUDIO,
-        PDF
+        IMAGE, VIDEO, AUDIO, PDF
     }
 }
