@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class ExhibitionService {
 
@@ -64,7 +65,6 @@ public class ExhibitionService {
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
-    @Transactional
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
         calculateAndSetStatus(exhibition);
@@ -74,7 +74,6 @@ public class ExhibitionService {
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
-    @Transactional
     public ExhibitionDto update(Long id, ExhibitionDto exhibitionDto) {
         Exhibition existingExhibition = exhibitionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
@@ -87,7 +86,6 @@ public class ExhibitionService {
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
-    @Transactional
     public void delete(Long id) {
         Exhibition exhibition = exhibitionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));

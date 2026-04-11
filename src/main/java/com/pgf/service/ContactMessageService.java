@@ -43,20 +43,7 @@ public class ContactMessageService {
     }
 
     @Transactional(readOnly = true)
-    public List<ContactMessageDto> findUnreadMessages() {
-        return contactMessageRepository.findByIsReadFalseOrderByCreatedAtDesc()
-                .stream()
-                .map(contactMessageMapper::toDto)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
     public long countUnread() {
-        return contactMessageRepository.countByIsReadFalse();
-    }
-
-    @Transactional(readOnly = true)
-    public Long countUnreadMessages() {
         return contactMessageRepository.countByIsReadFalse();
     }
 

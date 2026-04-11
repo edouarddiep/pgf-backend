@@ -43,7 +43,6 @@ public class AdminService {
     // ARTWORKS MANAGEMENT
     // ===============================================
 
-    @Transactional(readOnly = true)
     public List<ArtworkDto> getAllArtworks() {
         return artworkService.findAll();
     }
@@ -68,7 +67,6 @@ public class AdminService {
     // CATEGORIES MANAGEMENT
     // ===============================================
 
-    @Transactional(readOnly = true)
     public List<ArtworkCategoryDto> getAllCategories() {
         return categoryService.findAll();
     }
@@ -89,7 +87,6 @@ public class AdminService {
     // EXHIBITIONS MANAGEMENT
     // ===============================================
 
-    @Transactional(readOnly = true)
     public List<ExhibitionDto> getAllExhibitions() {
         return exhibitionService.findAll();
     }
@@ -130,19 +127,16 @@ public class AdminService {
     // CONTACT MESSAGES MANAGEMENT
     // ===============================================
 
-    @Transactional(readOnly = true)
     public List<ContactMessageDto> getAllMessages() {
         return messageService.findAll();
     }
 
-    @Transactional(readOnly = true)
     public List<ContactMessageDto> getUnreadMessages() {
-        return messageService.findUnreadMessages();
+        return messageService.findUnread();
     }
 
-    @Transactional(readOnly = true)
     public long getUnreadMessagesCount() {
-        return messageService.countUnreadMessages();
+        return messageService.countUnread();
     }
 
     public ContactMessageDto markMessageAsRead(Long id) {

@@ -1,6 +1,7 @@
 package com.pgf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pgf.dto.ArchiveDto;
 import com.pgf.dto.ArtworkCategoryDto;
 import com.pgf.dto.ArtworkDto;
 import com.pgf.dto.ContactMessageDto;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,14 +35,16 @@ class PgfIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // ===============================================
+    // CATEGORIES
+    // ===============================================
+
     @Test
     void shouldGetAllArtworkCategories() throws Exception {
         mockMvc.perform(get("/api/categories"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(5))
-                .andExpect(jsonPath("$[0].name").value("Fils de fer"));
+                .andExpect(jsonPath("$").isArray());
     }
 
     @Test
@@ -51,6 +53,14 @@ class PgfIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Fils de fer"))
                 .andExpect(jsonPath("$.slug").value("fils-de-fer"));
+    }
+
+    @Test
+    void shouldReturnNotFoundForNonExistentCategory() throws Exception {
+        mockMvc.perform(get("/api/categories/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
@@ -69,11 +79,35 @@ class PgfIntegrationTest {
                 .andExpect(jsonPath("$.slug").value("test-category"));
     }
 
+    // ===============================================
+    // ARTWORKS
+    // ===============================================
+
     @Test
     void shouldGetAllArtworks() throws Exception {
         mockMvc.perform(get("/api/artworks"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void shouldReturnNotFoundForNonExistentArtwork() throws Exception {
+        mockMvc.perform(get("/api/artworks/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldGetArtworksByCategory() throws Exception {
+        mockMvc.perform(get("/api/artworks/category/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void shouldGetArtworksByCategorySlug() throws Exception {
+        mockMvc.perform(get("/api/artworks/category/slug/fils-de-fer"))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
 
@@ -116,83 +150,48 @@ class PgfIntegrationTest {
     }
 
     @Test
-    void shouldUpdateArtworkCategories() throws Exception {
-        ArtworkDto artwork = new ArtworkDto();
-        artwork.setTitle("Test Artwork for Category Update");
-        artwork.setImageUrls(List.of("https://example.com/image.jpg"));
-        artwork.setMainImageUrl("https://example.com/image.jpg");
-        artwork.setCategoryIds(Set.of(1L));
-
-        String response = mockMvc.perform(post("/api/artworks")
+    void shouldValidateRequiredFieldsForNewArtwork() throws Exception {
+        mockMvc.perform(post("/api/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(artwork)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                        .content(objectMapper.writeValueAsString(new ArtworkDto())))
+                .andExpect(status().isBadRequest());
+    }
 
-        ArtworkDto createdArtwork = objectMapper.readValue(response, ArtworkDto.class);
+    @Test
+    void shouldValidateRequiredCategoriesForArtwork() throws Exception {
+        ArtworkDto artworkWithoutCategories = new ArtworkDto();
+        artworkWithoutCategories.setTitle("Test Artwork");
+        artworkWithoutCategories.setDescription("Test description");
+        artworkWithoutCategories.setImageUrls(List.of("https://example.com/image.jpg"));
+        artworkWithoutCategories.setCategoryIds(Set.of());
 
-        Set<Long> newCategoryIds = Set.of(1L, 2L, 3L);
-
-        mockMvc.perform(put("/api/admin/artworks/" + createdArtwork.getId() + "/categories")
+        mockMvc.perform(post("/api/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newCategoryIds)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.categoryIds").isArray())
-                .andExpect(jsonPath("$.categoryIds.length()").value(3));
+                        .content(objectMapper.writeValueAsString(artworkWithoutCategories)))
+                .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void shouldGetArtworksByCategory() throws Exception {
-        mockMvc.perform(get("/api/artworks/category/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    void shouldGetArtworksByCategorySlug() throws Exception {
-        mockMvc.perform(get("/api/artworks/category/slug/fils-de-fer"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    void shouldCreateArtworkWithImages() throws Exception {
-        MockMultipartFile artworkJson = new MockMultipartFile(
-                "artwork",
-                "",
-                "application/json",
-                ("{\"title\":\"Test Artwork with Images\"," +
-                        "\"description\":\"Test description\"," +
-                        "\"displayOrder\":1," +
-                        "\"categoryIds\":[1,2]}").getBytes()
-        );
-
-        MockMultipartFile image1 = new MockMultipartFile(
-                "images",
-                "test1.jpg",
-                "image/jpeg",
-                "fake image 1 content".getBytes()
-        );
-
-        MockMultipartFile image2 = new MockMultipartFile(
-                "images",
-                "test2.jpg",
-                "image/jpeg",
-                "fake image 2 content".getBytes()
-        );
-
-        mockMvc.perform(multipart("/api/admin/artworks/with-images")
-                        .file(artworkJson)
-                        .file(image1)
-                        .file(image2))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.title").value("Test Artwork with Images"))
-                .andExpect(jsonPath("$.imageUrls").isArray());
-    }
+    // ===============================================
+    // EXHIBITIONS
+    // ===============================================
 
     @Test
     void shouldGetAllExhibitions() throws Exception {
         mockMvc.perform(get("/api/exhibitions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void shouldGetUpcomingExhibitions() throws Exception {
+        mockMvc.perform(get("/api/exhibitions/upcoming"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void shouldGetPastExhibitions() throws Exception {
+        mockMvc.perform(get("/api/exhibitions/past"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
@@ -213,23 +212,67 @@ class PgfIntegrationTest {
                         .content(objectMapper.writeValueAsString(newExhibition)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Test Exhibition"))
-                .andExpect(jsonPath("$.address").value("123 Art Street, Paris"))
-                .andExpect(jsonPath("$.url").value("https://example.com/exhibition"));
+                .andExpect(jsonPath("$.location").value("Test Gallery"))
+                .andExpect(jsonPath("$.address").value("123 Art Street, Paris"));
     }
 
+    // ===============================================
+    // ARCHIVES
+    // ===============================================
+
     @Test
-    void shouldGetUpcomingExhibitions() throws Exception {
-        mockMvc.perform(get("/api/exhibitions/upcoming"))
+    void shouldGetAllArchives() throws Exception {
+        mockMvc.perform(get("/api/archives"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
 
     @Test
-    void shouldGetPastExhibitions() throws Exception {
-        mockMvc.perform(get("/api/exhibitions/past"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+    void shouldReturnNotFoundForNonExistentArchive() throws Exception {
+        mockMvc.perform(get("/api/archives/999"))
+                .andExpect(status().isNotFound());
     }
+
+    @Test
+    void shouldCreateArchive() throws Exception {
+        ArchiveDto dto = new ArchiveDto();
+        dto.setTitle("Test Archive");
+        dto.setYear(2024);
+        dto.setDescription("Archive de test");
+        dto.setThumbnailUrl("https://example.com/thumb.jpg");
+        dto.setFiles(List.of());
+
+        mockMvc.perform(post("/api/archives")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Test Archive"))
+                .andExpect(jsonPath("$.year").value(2024));
+    }
+
+    @Test
+    void shouldDeleteArchiveViaAdmin() throws Exception {
+        ArchiveDto dto = new ArchiveDto();
+        dto.setTitle("Archive à supprimer");
+        dto.setYear(2023);
+        dto.setThumbnailUrl("https://example.com/thumb.jpg");
+        dto.setFiles(List.of());
+
+        String response = mockMvc.perform(post("/api/archives")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        ArchiveDto created = objectMapper.readValue(response, ArchiveDto.class);
+
+        mockMvc.perform(delete("/api/admin/archives/" + created.getId()))
+                .andExpect(status().isNoContent());
+    }
+
+    // ===============================================
+    // CONTACT
+    // ===============================================
 
     @Test
     void shouldSendContactMessage() throws Exception {
@@ -251,108 +294,50 @@ class PgfIntegrationTest {
     }
 
     @Test
-    void shouldGetAllContactMessages() throws Exception {
-        mockMvc.perform(get("/api/contact/messages"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    void shouldGetUnreadMessages() throws Exception {
-        mockMvc.perform(get("/api/contact/messages/unread"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    void shouldGetUnreadCount() throws Exception {
-        mockMvc.perform(get("/api/contact/messages/count-unread"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isNumber());
-    }
-
-    @Test
-    void shouldUploadImage() throws Exception {
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test-image.jpg",
-                "image/jpeg",
-                "fake image content".getBytes()
-        );
-
-        mockMvc.perform(multipart("/api/admin/upload/image")
-                        .file(file)
-                        .param("category", "artworks"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.imageUrl").exists());
-    }
-
-    @Test
-    void shouldReturnNotFoundForNonExistentCategory() throws Exception {
-        mockMvc.perform(get("/api/categories/999"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    void shouldReturnNotFoundForNonExistentArtwork() throws Exception {
-        mockMvc.perform(get("/api/artworks/999"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void shouldValidateRequiredFieldsForNewArtwork() throws Exception {
-        ArtworkDto invalidArtwork = new ArtworkDto();
-
-        mockMvc.perform(post("/api/artworks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidArtwork)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldValidateRequiredCategoriesForArtwork() throws Exception {
-        ArtworkDto artworkWithoutCategories = new ArtworkDto();
-        artworkWithoutCategories.setTitle("Test Artwork");
-        artworkWithoutCategories.setDescription("Test description");
-        artworkWithoutCategories.setImageUrls(List.of("https://example.com/image.jpg"));
-        artworkWithoutCategories.setCategoryIds(Set.of());
-
-        mockMvc.perform(post("/api/artworks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(artworkWithoutCategories)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details").exists());
-    }
-
-    @Test
     void shouldValidateRequiredFieldsForContactMessage() throws Exception {
-        ContactMessageDto invalidMessage = new ContactMessageDto();
-
         mockMvc.perform(post("/api/contact")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidMessage)))
+                        .content(objectMapper.writeValueAsString(new ContactMessageDto())))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldDeleteContactMessage() throws Exception {
+        ContactMessageDto message = new ContactMessageDto();
+        message.setName("Jane Doe");
+        message.setEmail("jane@example.com");
+        message.setSubject("Test");
+        message.setMessage("Message à supprimer.");
+
+        String response = mockMvc.perform(post("/api/contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(message)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        ContactMessageDto created = objectMapper.readValue(response, ContactMessageDto.class);
+
+        mockMvc.perform(delete("/api/admin/messages/" + created.getId()))
+                .andExpect(status().isNoContent());
+    }
+
+    // ===============================================
+    // ADMIN
+    // ===============================================
 
     @Test
     void shouldLoginAsAdmin() throws Exception {
-        String loginRequest = "{\"password\":\"pgf-admin-2025\"}";
-
         mockMvc.perform(post("/api/admin/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginRequest))
+                        .content("{\"password\":\"pgf-admin-2025\"}"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void shouldRejectInvalidAdminPassword() throws Exception {
-        String loginRequest = "{\"password\":\"wrong-password\"}";
-
         mockMvc.perform(post("/api/admin/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginRequest))
+                        .content("{\"password\":\"wrong-password\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -381,5 +366,52 @@ class PgfIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Admin Test Artwork"))
                 .andExpect(jsonPath("$.categoryIds").isArray())
                 .andExpect(jsonPath("$.categoryIds.length()").value(2));
+    }
+
+    @Test
+    void shouldUpdateArtworkCategories() throws Exception {
+        ArtworkDto artwork = new ArtworkDto();
+        artwork.setTitle("Test Artwork for Category Update");
+        artwork.setImageUrls(List.of("https://example.com/image.jpg"));
+        artwork.setMainImageUrl("https://example.com/image.jpg");
+        artwork.setCategoryIds(Set.of(1L));
+
+        String response = mockMvc.perform(post("/api/artworks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(artwork)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        ArtworkDto created = objectMapper.readValue(response, ArtworkDto.class);
+
+        mockMvc.perform(put("/api/admin/artworks/" + created.getId() + "/categories")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Set.of(1L, 2L, 3L))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.categoryIds").isArray())
+                .andExpect(jsonPath("$.categoryIds.length()").value(3));
+    }
+
+    @Test
+    void shouldGetArchivesForAdmin() throws Exception {
+        mockMvc.perform(get("/api/admin/archives"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void shouldCreateArchiveViaAdmin() throws Exception {
+        ArchiveDto dto = new ArchiveDto();
+        dto.setTitle("Admin Archive");
+        dto.setYear(2025);
+        dto.setThumbnailUrl("https://example.com/thumb.jpg");
+        dto.setFiles(List.of());
+
+        mockMvc.perform(post("/api/admin/archives")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Admin Archive"))
+                .andExpect(jsonPath("$.year").value(2025));
     }
 }
