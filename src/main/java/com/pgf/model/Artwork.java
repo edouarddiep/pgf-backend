@@ -33,6 +33,15 @@ public class Artwork extends BaseEntity {
     @Column(name = "main_image_url")
     private String mainImageUrl;
 
+    @Column(name = "main_image_position_x")
+    private Integer mainImagePositionX = 50;
+
+    @Column(name = "main_image_position_y")
+    private Integer mainImagePositionY = 50;
+
+    @Column(name = "main_image_zoom")
+    private Integer mainImageZoom = 100;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "artwork_categories_mapping",
