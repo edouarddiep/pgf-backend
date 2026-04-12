@@ -11,7 +11,7 @@ public class ArtworkCategoryDto {
 
     private Long id;
 
-    @NotBlank(message = "Le nom de la catÃ©gorie est requis")
+    @NotBlank(message = "Le nom de la catégorie est requis")
     private String name;
 
     private String description;
@@ -23,6 +23,12 @@ public class ArtworkCategoryDto {
     private String slug;
 
     private String thumbnailUrl;
+
+    private Integer thumbnailPositionX = 50;
+
+    private Integer thumbnailPositionY = 50;
+
+    private Integer thumbnailZoom = 100;
 
     private LocalDateTime createdAt;
 

@@ -23,7 +23,7 @@ public class ArtworkDto {
     private Long id;
 
     @NotBlank(message = "Le titre est obligatoire")
-    @Size(max = 255, message = "Le titre ne peut pas dÃ©passer 255 caractÃ¨res")
+    @Size(max = 255, message = "Le titre ne peut pas dépasser 255 caractères")
     private String title;
 
     @Size(max = 1000, message = "La description ne peut pas dépasser 1000 caractères")

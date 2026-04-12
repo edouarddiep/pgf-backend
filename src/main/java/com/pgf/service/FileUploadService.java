@@ -35,42 +35,27 @@ public class FileUploadService {
     @Value("${supabase.service-key}")
     private String serviceKey;
 
-    @Value("${app.upload.supabase.bucket:oeuvres}")
+    @Value("${app.upload.supabase.bucket}")
     private String bucketName;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private final List<String> allowedExtensions = Arrays.asList("jpg", "jpeg", "png", "webp");
-    private final int MAX_WIDTH = 1200;
-    private final int MAX_HEIGHT = 800;
-    private final float JPEG_QUALITY = 0.85f;
-    private final int THUMBNAIL_SIZE = 300;
-
     public ImageUploadResult uploadImage(MultipartFile file, String categorySlug) throws IOException {
         validateFile(file);
 
-        byte[] optimizedImage = optimizeImage(file, MAX_WIDTH, MAX_HEIGHT, JPEG_QUALITY);
-        byte[] thumbnail = createThumbnail(file, THUMBNAIL_SIZE);
-
         String supabaseFolder = mapCategoryToSupabaseFolder(categorySlug);
         String fileName = generateFileName(file.getOriginalFilename(), categorySlug);
-        String thumbnailName = "thumb_" + fileName;
+        String imageUrl = uploadToSupabase(file.getBytes(), supabaseFolder + "/images", fileName);
 
-        String mainImageUrl = uploadToSupabase(optimizedImage, supabaseFolder + "/images", fileName);
-        String thumbnailUrl = uploadToSupabase(thumbnail, supabaseFolder + "/thumbnails", thumbnailName);
-
-        return new ImageUploadResult(mainImageUrl, thumbnailUrl);
+        return new ImageUploadResult(imageUrl, imageUrl);
     }
 
     public ImageUploadResult uploadExhibitionImage(MultipartFile file, String exhibitionSlug, int imageIndex) throws IOException {
         validateFile(file);
 
-        byte[] optimizedImage = optimizeImage(file, MAX_WIDTH, MAX_HEIGHT, JPEG_QUALITY);
-
         String fileName = String.format("image-%d.jpg", imageIndex);
         String folder = "expositions/" + exhibitionSlug + "/images";
-
-        String imageUrl = uploadToSupabase(optimizedImage, folder, fileName);
+        String imageUrl = uploadToSupabase(file.getBytes(), folder, fileName);
 
         return new ImageUploadResult(imageUrl, null);
     }
@@ -91,123 +76,6 @@ public class FileUploadService {
             default -> "nouvelles-oeuvres";
         };
     }
-
-    private byte[] optimizeImage(MultipartFile file, int maxWidth, int maxHeight, float quality) throws IOException {
-        byte[] fileBytes = file.getBytes();
-
-        BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(fileBytes));
-
-        try {
-            Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(fileBytes));
-            ExifIFD0Directory exif = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
-
-            if (exif != null && exif.containsTag(ExifIFD0Directory.TAG_ORIENTATION)) {
-                int orientation = exif.getInt(ExifIFD0Directory.TAG_ORIENTATION);
-
-                if (orientation == 3) {
-                    originalImage = rotate(originalImage, 180);
-                } else if (orientation == 6) {
-                    originalImage = rotate(originalImage, 90);
-                } else if (orientation == 8) {
-                    originalImage = rotate(originalImage, -90);
-                }
-
-                log.info("Image orientation corrigée: {}", orientation);
-            }
-        } catch (Exception e) {
-            log.warn("Pas de données EXIF: {}", e.getMessage());
-        }
-
-        Dimension newDim = calculateDimensions(originalImage.getWidth(), originalImage.getHeight(), maxWidth, maxHeight);
-
-        BufferedImage resizedImage = new BufferedImage(newDim.width, newDim.height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = resizedImage.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.drawImage(originalImage, 0, 0, newDim.width, newDim.height, null);
-        g2d.dispose();
-
-        return compressToJpeg(resizedImage, quality);
-    }
-
-    private BufferedImage rotate(BufferedImage img, int angle) {
-        int w = img.getWidth();
-        int h = img.getHeight();
-
-        int newW = (angle == 90 || angle == -90) ? h : w;
-        int newH = (angle == 90 || angle == -90) ? w : h;
-
-        BufferedImage rotated = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = rotated.createGraphics();
-
-        if (angle == 90) {
-            g.translate(h, 0);
-            g.rotate(Math.toRadians(90));
-        } else if (angle == -90) {
-            g.translate(0, w);
-            g.rotate(Math.toRadians(-90));
-        } else if (angle == 180) {
-            g.translate(w, h);
-            g.rotate(Math.toRadians(180));
-        }
-
-        g.drawImage(img, 0, 0, null);
-        g.dispose();
-
-        return rotated;
-    }
-
-    private byte[] createThumbnail(MultipartFile file, int size) throws IOException {
-        BufferedImage originalImage = ImageIO.read(file.getInputStream());
-
-        int sourceSize = Math.min(originalImage.getWidth(), originalImage.getHeight());
-        int x = (originalImage.getWidth() - sourceSize) / 2;
-        int y = (originalImage.getHeight() - sourceSize) / 2;
-
-        BufferedImage croppedImage = originalImage.getSubimage(x, y, sourceSize, sourceSize);
-
-        BufferedImage thumbnail = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = thumbnail.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2d.drawImage(croppedImage, 0, 0, size, size, null);
-        g2d.dispose();
-
-        return compressToJpeg(thumbnail, 0.8f);
-    }
-
-    private byte[] compressToJpeg(BufferedImage image, float quality) throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        ImageWriter jpegWriter = ImageIO.getImageWritersByFormatName("jpeg").next();
-        ImageWriteParam jpegWriteParam = jpegWriter.getDefaultWriteParam();
-        jpegWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-        jpegWriteParam.setCompressionQuality(quality);
-
-        try (ImageOutputStream imageOutputStream = ImageIO.createImageOutputStream(outputStream)) {
-            jpegWriter.setOutput(imageOutputStream);
-            jpegWriter.write(null, new javax.imageio.IIOImage(image, null, null), jpegWriteParam);
-        }
-        jpegWriter.dispose();
-
-        return outputStream.toByteArray();
-    }
-
-    private Dimension calculateDimensions(int originalWidth, int originalHeight, int maxWidth, int maxHeight) {
-        double widthRatio = (double) maxWidth / originalWidth;
-        double heightRatio = (double) maxHeight / originalHeight;
-        double ratio = Math.min(widthRatio, heightRatio);
-
-        if (ratio >= 1.0) {
-            return new Dimension(originalWidth, originalHeight);
-        }
-
-        return new Dimension(
-                (int) (originalWidth * ratio),
-                (int) (originalHeight * ratio)
-        );
-    }
-
 
     private String uploadToSupabase(byte[] imageData, String folder, String fileName) throws IOException {
         String filePath = folder + "/" + fileName;

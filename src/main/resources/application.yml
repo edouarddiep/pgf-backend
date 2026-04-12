@@ -40,10 +40,10 @@ app:
   upload:
     supabase:
       bucket: "oeuvres"
-      max-width: 1200
-      max-height: 800
-      jpeg-quality: 0.85
-      thumbnail-size: 300
+      max-width: 2400
+      max-height: 2400
+      jpeg-quality: 0.95
+      thumbnail-size: 400
   admin:
     password: ${ADMIN_PASSWORD}
   cors:

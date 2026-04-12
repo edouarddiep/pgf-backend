@@ -32,6 +32,15 @@ public class ArtworkCategory extends BaseEntity {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
+    @Column(name = "thumbnail_position_x")
+    private Integer thumbnailPositionX = 50;
+
+    @Column(name = "thumbnail_position_y")
+    private Integer thumbnailPositionY = 50;
+
+    @Column(name = "thumbnail_zoom")
+    private Integer thumbnailZoom = 100;
+
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     private Set<Artwork> artworks = new HashSet<>();
 }
