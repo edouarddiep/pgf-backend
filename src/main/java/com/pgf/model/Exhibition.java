@@ -44,6 +44,9 @@ public class Exhibition extends BaseEntity {
     @Column(name = "credits", columnDefinition = "TEXT")
     private String credits;
 
+    @Column(name = "vernissage_url", length = 500)
+    private String vernissageUrl;
+
     @Column(name = "website_url", length = 500)
     private String websiteUrl;
 

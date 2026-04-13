@@ -1,0 +1,1 @@
+ALTER TABLE exhibitions ADD COLUMN IF NOT EXISTS vernissage_url VARCHAR(500);

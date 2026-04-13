@@ -39,5 +39,7 @@ public class ExhibitionDto {
 
     private String credits;
 
+    private String vernissageUrl;
+
     private String websiteUrl;
 }
