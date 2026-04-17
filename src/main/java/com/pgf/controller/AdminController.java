@@ -1,12 +1,15 @@
 package com.pgf.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.pgf.dto.*;
 import com.pgf.service.*;
+import com.pgf.util.RequestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -30,6 +33,8 @@ public class AdminController {
 
     private final AdminService adminService;
     private final FileUploadService fileUploadService;
+    private final AuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/auth/login")
     @Operation(summary = "Admin login")
@@ -48,21 +53,34 @@ public class AdminController {
     }
 
     @PostMapping("/categories")
-    @Operation(summary = "Create category")
-    public ResponseEntity<ArtworkCategoryDto> createCategory(@Valid @RequestBody ArtworkCategoryDto dto) {
-        return new ResponseEntity<>(adminService.createCategory(dto), HttpStatus.CREATED);
+    public ResponseEntity<ArtworkCategoryDto> createCategory(
+            @Valid @RequestBody ArtworkCategoryDto dto, HttpServletRequest request) {
+        ArtworkCategoryDto created = adminService.createCategory(dto);
+        auditLogService.log("artwork_category", created.getId(), "CREATE",
+                null, created, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping("/categories/{id}")
-    @Operation(summary = "Update category")
-    public ResponseEntity<ArtworkCategoryDto> updateCategory(@PathVariable Long id, @Valid @RequestBody ArtworkCategoryDto dto) {
-        return ResponseEntity.ok(adminService.updateCategory(id, dto));
+    public ResponseEntity<ArtworkCategoryDto> updateCategory(
+            @PathVariable Long id, @Valid @RequestBody ArtworkCategoryDto dto, HttpServletRequest request) {
+        ArtworkCategoryDto before = adminService.getCategoryById(id);
+        ArtworkCategoryDto updated = adminService.updateCategory(id, dto);
+        auditLogService.log("artwork_category", id, "UPDATE",
+                before, updated, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return ResponseEntity.ok(updated);
     }
 
+
     @DeleteMapping("/categories/{id}")
-    @Operation(summary = "Delete category")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id, HttpServletRequest request) {
+        ArtworkCategoryDto before = adminService.getCategoryById(id);
         adminService.deleteCategory(id);
+        auditLogService.log("artwork_category", id, "DELETE",
+                before, null, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -75,20 +93,34 @@ public class AdminController {
 
     @PostMapping("/artworks")
     @Operation(summary = "Create artwork")
-    public ResponseEntity<ArtworkDto> createArtwork(@Valid @RequestBody ArtworkDto dto) {
-        return new ResponseEntity<>(adminService.createArtwork(dto), HttpStatus.CREATED);
+    public ResponseEntity<ArtworkDto> createArtwork(@Valid @RequestBody ArtworkDto dto, HttpServletRequest request) {
+        ArtworkDto created = adminService.createArtwork(dto);
+        auditLogService.log("artwork", created.getId(), "CREATE",
+                null, created, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping("/artworks/{id}")
     @Operation(summary = "Update artwork")
-    public ResponseEntity<ArtworkDto> updateArtwork(@PathVariable Long id, @Valid @RequestBody ArtworkDto dto) {
-        return ResponseEntity.ok(adminService.updateArtwork(id, dto));
+    public ResponseEntity<ArtworkDto> updateArtwork(@PathVariable Long id, @Valid @RequestBody ArtworkDto dto, HttpServletRequest request) {
+        ArtworkDto before = adminService.getArtworkById(id);
+        ArtworkDto updated = adminService.updateArtwork(id, dto);
+        auditLogService.log("artwork", id, "UPDATE",
+                before, updated, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return ResponseEntity.ok(updated);
     }
+
 
     @DeleteMapping("/artworks/{id}")
     @Operation(summary = "Delete artwork")
-    public ResponseEntity<Void> deleteArtwork(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteArtwork(@PathVariable Long id, HttpServletRequest request) {
+        ArtworkDto before = adminService.getArtworkById(id);
         adminService.deleteArtwork(id);
+        auditLogService.log("artwork", id, "DELETE",
+                before, null, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -137,7 +169,10 @@ public class AdminController {
     public ResponseEntity<ArtworkDto> updateArtworkWithImages(
             @PathVariable Long id,
             @RequestPart("artwork") String artworkJson,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            HttpServletRequest request) throws IOException {
+
+        ArtworkDto before = adminService.getArtworkById(id);
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -156,7 +191,6 @@ public class AdminController {
 
             List<String> existingUrls = artworkDto.getImageUrls() != null ?
                     new ArrayList<>(artworkDto.getImageUrls()) : new ArrayList<>();
-
             existingUrls.addAll(uploadedUrls);
             artworkDto.setImageUrls(existingUrls);
 
@@ -166,6 +200,9 @@ public class AdminController {
         }
 
         ArtworkDto updated = adminService.updateArtwork(id, artworkDto);
+        auditLogService.log("artwork", id, "UPDATE",
+                before, updated, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
         return ResponseEntity.ok(updated);
     }
 
@@ -178,20 +215,33 @@ public class AdminController {
 
     @PostMapping("/exhibitions")
     @Operation(summary = "Create exhibition")
-    public ResponseEntity<ExhibitionDto> createExhibition(@Valid @RequestBody ExhibitionDto dto) {
-        return new ResponseEntity<>(adminService.createExhibition(dto), HttpStatus.CREATED);
+    public ResponseEntity<ExhibitionDto> createExhibition(@Valid @RequestBody ExhibitionDto dto, HttpServletRequest request) {
+        ExhibitionDto created = adminService.createExhibition(dto);
+        auditLogService.log("exhibition", created.getId(), "CREATE",
+                null, created, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping("/exhibitions/{id}")
     @Operation(summary = "Update exhibition")
-    public ResponseEntity<ExhibitionDto> updateExhibition(@PathVariable Long id, @Valid @RequestBody ExhibitionDto dto) {
-        return ResponseEntity.ok(adminService.updateExhibition(id, dto));
+    public ResponseEntity<ExhibitionDto> updateExhibition(@PathVariable Long id, @Valid @RequestBody ExhibitionDto dto, HttpServletRequest request) {
+        ExhibitionDto before = adminService.getExhibitionById(id);
+        ExhibitionDto updated = adminService.updateExhibition(id, dto);
+        auditLogService.log("exhibition", id, "UPDATE",
+                before, updated, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/exhibitions/{id}")
     @Operation(summary = "Delete exhibition")
-    public ResponseEntity<Void> deleteExhibition(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteExhibition(@PathVariable Long id, HttpServletRequest request) {
+        ExhibitionDto before = adminService.getExhibitionById(id);
         adminService.deleteExhibition(id);
+        auditLogService.log("exhibition", id, "DELETE",
+                before, null, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -204,20 +254,33 @@ public class AdminController {
 
     @PostMapping("/archives")
     @Operation(summary = "Create archive")
-    public ResponseEntity<ArchiveDto> createArchive(@Valid @RequestBody ArchiveDto dto) {
-        return new ResponseEntity<>(adminService.createArchive(dto), HttpStatus.CREATED);
+    public ResponseEntity<ArchiveDto> createArchive(@Valid @RequestBody ArchiveDto dto, HttpServletRequest request) {
+        ArchiveDto created = adminService.createArchive(dto);
+        auditLogService.log("archive", created.getId(), "CREATE",
+                null, created, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping("/archives/{id}")
     @Operation(summary = "Update archive")
-    public ResponseEntity<ArchiveDto> updateArchive(@PathVariable Long id, @Valid @RequestBody ArchiveDto dto) {
-        return ResponseEntity.ok(adminService.updateArchive(id, dto));
+    public ResponseEntity<ArchiveDto> updateArchive(@PathVariable Long id, @Valid @RequestBody ArchiveDto dto, HttpServletRequest request) {
+        ArchiveDto before = adminService.getArchiveById(id);
+        ArchiveDto updated = adminService.updateArchive(id, dto);
+        auditLogService.log("archive", id, "UPDATE",
+                before, updated, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/archives/{id}")
     @Operation(summary = "Delete archive")
-    public ResponseEntity<Void> deleteArchive(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteArchive(@PathVariable Long id, HttpServletRequest request) {
+        ArchiveDto before = adminService.getArchiveById(id);
         adminService.deleteArchive(id);
+        auditLogService.log("archive", id, "DELETE",
+                before, null, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -338,7 +401,10 @@ public class AdminController {
     public ResponseEntity<ExhibitionDto> updateExhibitionWithImages(
             @PathVariable Long id,
             @RequestPart("exhibition") String exhibitionJson,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            HttpServletRequest request) throws IOException {
+
+        ExhibitionDto before = adminService.getExhibitionById(id);
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -356,7 +422,6 @@ public class AdminController {
 
             List<String> existingUrls = exhibitionDto.getImageUrls() != null ?
                     new ArrayList<>(exhibitionDto.getImageUrls()) : new ArrayList<>();
-
             existingUrls.addAll(uploadedUrls);
             exhibitionDto.setImageUrls(existingUrls);
 
@@ -366,6 +431,9 @@ public class AdminController {
         }
 
         ExhibitionDto updated = adminService.updateExhibition(id, exhibitionDto);
+        auditLogService.log("exhibition", id, "UPDATE",
+                before, updated, performedBy(request),
+                RequestUtils.extractIp(request), RequestUtils.extractUserAgent(request));
         return ResponseEntity.ok(updated);
     }
 
@@ -432,6 +500,26 @@ public class AdminController {
         }
     }
 
-    public record AdminLoginRequest(String password) {}
+    private String performedBy(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                String token = authHeader.substring(7);
+                String[] parts = token.split("\\.");
+                byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+                JsonNode payload = objectMapper.readTree(decoded);
+                String displayName = payload.path("user_metadata").path("display_name").asText("");
+                if (!displayName.isBlank()) {
+                    return displayName;
+                }
+            } catch (Exception e) {
+                log.warn("Could not extract display_name from JWT");
+            }
+        }
+        String name = request.getHeader("X-Admin-Name");
+        return (name != null && !name.isBlank()) ? name : "admin-legacy";
+    }
+
+    public record AdminLoginRequest(String password, String performedBy) {}
     public record ImageUploadResponse(String imageUrl) {}
 }

@@ -1,6 +1,7 @@
 package com.pgf.service;
 
 import com.pgf.dto.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +48,10 @@ public class AdminService {
         return artworkService.findAll();
     }
 
+    public ArtworkDto getArtworkById(Long id) {
+        return artworkService.findById(id);
+    }
+
     public ArtworkDto createArtwork(ArtworkDto artworkDto) {
         return artworkService.create(artworkDto);
     }
@@ -71,6 +76,10 @@ public class AdminService {
         return categoryService.findAll();
     }
 
+    public ArtworkCategoryDto getCategoryById(Long id) {
+        return categoryService.findById(id);
+    }
+
     public ArtworkCategoryDto createCategory(ArtworkCategoryDto categoryDto) {
         return categoryService.create(categoryDto);
     }
@@ -91,6 +100,11 @@ public class AdminService {
         return exhibitionService.findAll();
     }
 
+    public ExhibitionDto getExhibitionById(Long id) {
+        return exhibitionService.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
+    }
+
     public ExhibitionDto createExhibition(ExhibitionDto exhibitionDto) {
         return exhibitionService.create(exhibitionDto);
     }
@@ -109,6 +123,11 @@ public class AdminService {
 
     public List<ArchiveDto> getAllArchives() {
         return archiveService.findAll();
+    }
+
+    public ArchiveDto getArchiveById(Long id) {
+        return archiveService.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Archive not found with id: " + id));
     }
 
     public ArchiveDto createArchive(ArchiveDto dto) {

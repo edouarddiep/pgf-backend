@@ -90,6 +90,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring mail pour la notification d'accès admin -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- API Documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>
