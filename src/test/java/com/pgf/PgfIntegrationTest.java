@@ -68,7 +68,6 @@ class PgfIntegrationTest {
         ArtworkCategoryDto newCategory = new ArtworkCategoryDto();
         newCategory.setName("Test Category");
         newCategory.setDescription("Category for testing");
-        newCategory.setDescriptionShort("Test category short");
         newCategory.setSlug("test-category");
 
         mockMvc.perform(post("/api/categories")
@@ -116,7 +115,6 @@ class PgfIntegrationTest {
         ArtworkDto newArtwork = new ArtworkDto();
         newArtwork.setTitle("Test Artwork");
         newArtwork.setDescription("A beautiful test artwork");
-        newArtwork.setDescriptionShort("Beautiful artwork");
         newArtwork.setImageUrls(List.of("https://example.com/image1.jpg", "https://example.com/image2.jpg"));
         newArtwork.setMainImageUrl("https://example.com/image1.jpg");
         newArtwork.setCategoryIds(Set.of(1L));
@@ -354,7 +352,6 @@ class PgfIntegrationTest {
         ArtworkDto newArtwork = new ArtworkDto();
         newArtwork.setTitle("Admin Test Artwork");
         newArtwork.setDescription("Created via admin endpoint");
-        newArtwork.setDescriptionShort("Admin artwork");
         newArtwork.setImageUrls(List.of("https://example.com/admin-image.jpg"));
         newArtwork.setMainImageUrl("https://example.com/admin-image.jpg");
         newArtwork.setCategoryIds(Set.of(1L, 2L));

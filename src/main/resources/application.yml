@@ -52,6 +52,11 @@ supabase:
   url: ${SUPABASE_URL}
   service-key: ${SUPABASE_SERVICE_KEY}
 
+deepl:
+  api:
+    key: ${DEEPL_API_KEY}
+    url: https://api-free.deepl.com/v2/translate
+
 app:
   upload:
     supabase:

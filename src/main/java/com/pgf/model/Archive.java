@@ -19,12 +19,18 @@ public class Archive extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "title_en")
+    private String titleEn;
+
     @NotNull
     @Column(name = "year", nullable = false)
     private Integer year;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "description_en", columnDefinition = "TEXT")
+    private String descriptionEn;
 
     @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;

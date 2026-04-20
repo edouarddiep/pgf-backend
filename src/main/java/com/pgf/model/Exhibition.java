@@ -17,8 +17,14 @@ public class Exhibition extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "title_en")
+    private String titleEn;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "description_en", columnDefinition = "TEXT")
+    private String descriptionEn;
 
     @Column(name = "location")
     private String location;

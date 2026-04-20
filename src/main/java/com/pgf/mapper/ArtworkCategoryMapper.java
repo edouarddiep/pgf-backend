@@ -7,6 +7,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface ArtworkCategoryMapper {
 
+    @Mapping(target = "artworkCount", expression = "java(category.getArtworks() != null ? category.getArtworks().size() : 0)")
     ArtworkCategoryDto toDto(ArtworkCategory category);
 
     @Mapping(target = "artworks", ignore = true)

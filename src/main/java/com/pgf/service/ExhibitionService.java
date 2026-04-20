@@ -6,13 +6,14 @@ import com.pgf.model.Exhibition;
 import com.pgf.repository.ExhibitionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -23,6 +24,7 @@ public class ExhibitionService {
     private final ExhibitionRepository exhibitionRepository;
     private final ExhibitionMapper exhibitionMapper;
     private final FileUploadService imageService;
+    private final DeepLService deepLService;
 
     @Cacheable("exhibitions")
     @Transactional(readOnly = true)
@@ -68,9 +70,8 @@ public class ExhibitionService {
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
         calculateAndSetStatus(exhibition);
-
-        Exhibition savedExhibition = exhibitionRepository.save(exhibition);
-        return mapWithCalculatedStatus(savedExhibition);
+        translateAllFields(exhibition);
+        return mapWithCalculatedStatus(exhibitionRepository.save(exhibition));
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
@@ -78,11 +79,14 @@ public class ExhibitionService {
         Exhibition existingExhibition = exhibitionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
 
+        String previousTitle = existingExhibition.getTitle();
+        String previousDescription = existingExhibition.getDescription();
+
         exhibitionMapper.updateEntityFromDto(exhibitionDto, existingExhibition);
         calculateAndSetStatus(existingExhibition);
+        translateChangedFields(previousTitle, previousDescription, existingExhibition);
 
-        Exhibition updatedExhibition = exhibitionRepository.save(existingExhibition);
-        return mapWithCalculatedStatus(updatedExhibition);
+        return mapWithCalculatedStatus(exhibitionRepository.save(existingExhibition));
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
@@ -98,6 +102,20 @@ public class ExhibitionService {
         exhibitionRepository.deleteById(id);
     }
 
+    private void translateAllFields(Exhibition exhibition) {
+        exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
+        exhibition.setDescriptionEn(deepLService.translate(exhibition.getDescription()));
+    }
+
+    private void translateChangedFields(String previousTitle, String previousDescription, Exhibition exhibition) {
+        if (!Objects.equals(previousTitle, exhibition.getTitle())) {
+            exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
+        }
+        if (!Objects.equals(previousDescription, exhibition.getDescription())) {
+            exhibition.setDescriptionEn(deepLService.translate(exhibition.getDescription()));
+        }
+    }
+
     private ExhibitionDto mapWithCalculatedStatus(Exhibition exhibition) {
         calculateAndSetStatus(exhibition);
         return exhibitionMapper.toDto(exhibition);
@@ -108,9 +126,7 @@ public class ExhibitionService {
             exhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
             return;
         }
-
         LocalDate today = LocalDate.now();
-
         if (today.isBefore(exhibition.getStartDate())) {
             exhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
         } else if (exhibition.getEndDate() != null && today.isAfter(exhibition.getEndDate())) {

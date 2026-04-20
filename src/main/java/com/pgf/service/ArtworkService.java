@@ -9,14 +9,15 @@ import com.pgf.repository.ArtworkCategoryRepository;
 import com.pgf.repository.ArtworkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -29,6 +30,7 @@ public class ArtworkService {
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkMapper artworkMapper;
     private final FileUploadService imageService;
+    private final DeepLService deepLService;
 
     @Cacheable("artworks")
     @Transactional(readOnly = true)
@@ -48,7 +50,7 @@ public class ArtworkService {
 
     @Transactional(readOnly = true)
     public List<ArtworkDto> findByCategoryId(Long categoryId) {
-        return artworkRepository.findByCategoriesIdIn(Set.of(categoryId))
+        return artworkRepository.findByCategoryId(categoryId)
                 .stream()
                 .map(artworkMapper::toDto)
                 .toList();
@@ -65,7 +67,6 @@ public class ArtworkService {
     @CacheEvict(value = "artworks", allEntries = true)
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
-
         if (artworkDto.getCategoryIds() != null && !artworkDto.getCategoryIds().isEmpty()) {
             Set<ArtworkCategory> categories = new HashSet<>(categoryRepository.findAllById(artworkDto.getCategoryIds()));
             if (categories.isEmpty()) {
@@ -75,7 +76,7 @@ public class ArtworkService {
         } else {
             throw new IllegalArgumentException("Au moins une catégorie doit être spécifiée");
         }
-
+        translateAllFields(artwork);
         Artwork savedArtwork = artworkRepository.save(artwork);
         log.info("Created artwork: {} with {} categories", savedArtwork.getTitle(), savedArtwork.getCategories().size());
         return artworkMapper.toDto(savedArtwork);
@@ -85,6 +86,9 @@ public class ArtworkService {
     public ArtworkDto update(Long id, ArtworkDto artworkDto) {
         Artwork existingArtwork = artworkRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
+
+        String previousTitle = existingArtwork.getTitle();
+        String previousDescription = existingArtwork.getDescription();
 
         artworkMapper.updateEntityFromDto(artworkDto, existingArtwork);
 
@@ -101,6 +105,8 @@ public class ArtworkService {
             }
         }
 
+        translateChangedFields(previousTitle, previousDescription, existingArtwork);
+
         Artwork updatedArtwork = artworkRepository.save(existingArtwork);
         log.info("Updated artwork: {} with {} categories", updatedArtwork.getTitle(), updatedArtwork.getCategories().size());
         return artworkMapper.toDto(updatedArtwork);
@@ -109,13 +115,11 @@ public class ArtworkService {
     public ArtworkDto updateArtworkCategories(Long artworkId, Set<Long> categoryIds) {
         Artwork artwork = artworkRepository.findById(artworkId)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + artworkId));
-
         artwork.getCategories().clear();
         if (categoryIds != null && !categoryIds.isEmpty()) {
             Set<ArtworkCategory> categories = new HashSet<>(categoryRepository.findAllById(categoryIds));
             artwork.setCategories(categories);
         }
-
         return artworkMapper.toDto(artworkRepository.save(artwork));
     }
 
@@ -127,5 +131,19 @@ public class ArtworkService {
             artwork.getImageUrls().forEach(imageService::deleteImage);
         }
         artworkRepository.deleteById(id);
+    }
+
+    private void translateAllFields(Artwork artwork) {
+        artwork.setTitleEn(deepLService.translate(artwork.getTitle()));
+        artwork.setDescriptionEn(deepLService.translate(artwork.getDescription()));
+    }
+
+    private void translateChangedFields(String previousTitle, String previousDescription, Artwork artwork) {
+        if (!Objects.equals(previousTitle, artwork.getTitle())) {
+            artwork.setTitleEn(deepLService.translate(artwork.getTitle()));
+        }
+        if (!Objects.equals(previousDescription, artwork.getDescription())) {
+            artwork.setDescriptionEn(deepLService.translate(artwork.getDescription()));
+        }
     }
 }

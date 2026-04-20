@@ -15,7 +15,11 @@ public class ExhibitionDto {
     @NotBlank
     private String title;
 
+    private String titleEn;
+
     private String description;
+
+    private String descriptionEn;
 
     private String location;
 

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Repository
 public interface ArtworkRepository extends JpaRepository<Artwork, Long> {
@@ -17,8 +16,8 @@ public interface ArtworkRepository extends JpaRepository<Artwork, Long> {
     @Query("SELECT DISTINCT a FROM Artwork a LEFT JOIN FETCH a.categories WHERE a.id = :id")
     Optional<Artwork> findByIdWithCategories(@Param("id") Long id);
 
-    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.id IN :categoryIds ORDER BY a.title ASC")
-    List<Artwork> findByCategoriesIdIn(@Param("categoryIds") Set<Long> categoryIds);
+    @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.id = :categoryId ORDER BY a.title ASC")
+    List<Artwork> findByCategoryId(@Param("categoryId") Long categoryId);
 
     @Query("SELECT a FROM Artwork a JOIN a.categories c WHERE c.slug = :slug ORDER BY a.title ASC")
     List<Artwork> findByCategorySlug(@Param("slug") String slug);

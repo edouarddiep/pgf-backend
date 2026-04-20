@@ -19,10 +19,9 @@ public interface ArtworkMapper {
 
     default Set<Long> mapCategoryIds(Artwork artwork) {
         if (artwork.getCategories() != null && !artwork.getCategories().isEmpty()) {
-            Set<Long> ids = artwork.getCategories().stream()
+            return artwork.getCategories().stream()
                     .map(ArtworkCategory::getId)
                     .collect(Collectors.toSet());
-            return ids;
         }
         return new HashSet<>();
     }

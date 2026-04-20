@@ -21,11 +21,14 @@ public class Artwork extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "title_en")
+    private String titleEn;
+
     @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(name = "description_short", length = 500)
-    private String descriptionShort;
+    @Column(name = "description_en", columnDefinition = "TEXT")
+    private String descriptionEn;
 
     @Column(name = "image_urls", columnDefinition = "TEXT[]")
     private List<String> imageUrls;
