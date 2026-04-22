@@ -35,10 +35,34 @@ public class AdminUserService {
     @Value("${supabase.service-key}")
     private String supabaseServiceKey;
 
-    public void registerPendingUser(String email, String password, String displayName) {
+    public void sendInvitation(String email) {
+        AdminUser pending = adminUserRepository.findByEmail(email).orElse(null);
+
+        if (pending != null && pending.getApproved()) {
+            throw new IllegalArgumentException("Un compte actif existe déjà pour cet e-mail.");
+        }
+
+        if (pending == null) {
+            pending = new AdminUser();
+            pending.setId(UUID.randomUUID());
+            pending.setEmail(email);
+        }
+
+        String token = UUID.randomUUID().toString();
+        pending.setInvitationToken(token);
+        pending.setInvitationSentAt(LocalDateTime.now());
+        adminUserRepository.save(pending);
+
+        gmailNotificationService.sendInvitation(email, token);
+    }
+
+    public void registerWithToken(String token, String password, String displayName) {
+        AdminUser pending = adminUserRepository.findByInvitationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Token d'invitation invalide ou expiré."));
+
         HttpHeaders headers = supabaseHeaders();
         ObjectNode body = objectMapper.createObjectNode()
-                .put("email", email)
+                .put("email", pending.getEmail())
                 .put("password", password)
                 .put("email_confirm", false);
         body.putObject("user_metadata")
@@ -58,19 +82,17 @@ public class AdminUserService {
                 throw new IllegalStateException("Supabase user creation failed");
             }
 
-            String userId = user.get("id").asText();
+            String email = pending.getEmail();
+            adminUserRepository.delete(pending);
+            adminUserRepository.flush();
 
-            try {
-                AdminUser adminUser = new AdminUser();
-                adminUser.setId(UUID.fromString(userId));
-                adminUser.setEmail(email);
-                adminUser.setDisplayName(displayName);
-                adminUserRepository.save(adminUser);
-            } catch (Exception e) {
-                log.warn("Admin user already exists in local DB for {}", email);
-            }
+            AdminUser adminUser = new AdminUser();
+            adminUser.setId(UUID.fromString(user.get("id").asText()));
+            adminUser.setEmail(email);
+            adminUser.setDisplayName(displayName);
+            adminUserRepository.save(adminUser);
 
-            gmailNotificationService.sendAdminApprovalRequest(userId, email, displayName);
+            gmailNotificationService.sendAdminApprovalRequest(adminUser.getId().toString(), email, displayName);
 
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 422) {

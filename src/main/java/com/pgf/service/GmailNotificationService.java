@@ -59,4 +59,12 @@ public class GmailNotificationService {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
     }
+
+    public void sendInvitation(String email, String token) {
+        String registerUrl = frontendUrl + "/admin/register?token=" + token;
+        String html = "<p>Vous avez été invité(e) à rejoindre l'administration du site PGF.</p>" +
+                "<p><a href=\"" + registerUrl + "\">Créer mon compte administrateur</a></p>" +
+                "<p>Ce lien est à usage unique.</p>";
+        send(email, "Invitation à l'administration du site PGF", html);
+    }
 }

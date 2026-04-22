@@ -22,6 +22,12 @@ public class AdminUser {
     @Column(nullable = false)
     private Boolean approved = false;
 
+    @Column(name = "invitation_token", unique = true)
+    private String invitationToken;
+
+    @Column(name = "invitation_sent_at")
+    private LocalDateTime invitationSentAt;
+
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 

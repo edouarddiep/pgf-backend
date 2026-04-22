@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,16 +19,17 @@ public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
-    @Value("${app.admin.register-secret}")
-    private String registerSecret;
+    @PostMapping("/invite")
+    @Operation(summary = "Send invitation email to a new admin user")
+    public ResponseEntity<Void> invite(@RequestBody AdminUserDto dto) {
+        adminUserService.sendInvitation(dto.email());
+        return ResponseEntity.accepted().build();
+    }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestParam String secret, @RequestBody AdminUserDto dto) {
-        if (!registerSecret.equals(secret)) {
-            return ResponseEntity.status(403).build();
-        }
+    public ResponseEntity<String> register(@RequestParam String token, @RequestBody AdminUserDto dto) {
         try {
-            adminUserService.registerPendingUser(dto.email(), dto.password(), dto.displayName());
+            adminUserService.registerWithToken(token, dto.password(), dto.displayName());
             return ResponseEntity.accepted().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(409).body(e.getMessage());

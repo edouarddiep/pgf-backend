@@ -38,6 +38,8 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
         boolean isProtected = path.startsWith("/api/admin/")
                 && !path.equals("/api/admin/auth/login")
                 && !path.equals("/api/admin/auth/register")
+                && !path.equals("/api/admin/auth/invite")
+                && !path.equals("/api/admin/auth/forgot-password")
                 && !path.startsWith("/api/admin/auth/approve/");
 
         if (!isProtected) {
