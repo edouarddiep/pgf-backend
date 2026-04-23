@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface AdminUserRepository extends JpaRepository<AdminUser, UUID> {
     Optional<AdminUser> findByEmail(String email);
     Optional<AdminUser> findByInvitationToken(String invitationToken);
+    boolean existsByDisplayNameIgnoreCase(String displayName);
 }

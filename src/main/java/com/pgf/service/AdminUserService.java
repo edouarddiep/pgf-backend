@@ -57,6 +57,10 @@ public class AdminUserService {
     }
 
     public void registerWithToken(String token, String password, String displayName) {
+        if (adminUserRepository.existsByDisplayNameIgnoreCase(displayName)) {
+            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris.");
+        }
+
         AdminUser pending = adminUserRepository.findByInvitationToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Token d'invitation invalide ou expiré."));
 
