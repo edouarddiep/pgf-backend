@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,13 +31,19 @@ public class AuditLogService {
                 Map<String, Object> beforeMap = toMap(before);
                 Map<String, Object> afterMap = toMap(after);
 
-                Map<String, Object> changedBefore = beforeMap.entrySet().stream()
-                        .filter(e -> !objectEquals(e.getValue(), afterMap.get(e.getKey())))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                Map<String, Object> changedBefore = new HashMap<>();
+                Map<String, Object> changedAfter = new HashMap<>();
 
-                Map<String, Object> changedAfter = afterMap.entrySet().stream()
-                        .filter(e -> !objectEquals(e.getValue(), beforeMap.get(e.getKey())))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                for (Map.Entry<String, Object> entry : beforeMap.entrySet()) {
+                    if (!objectEquals(entry.getValue(), afterMap.get(entry.getKey()))) {
+                        changedBefore.put(entry.getKey(), entry.getValue());
+                    }
+                }
+                for (Map.Entry<String, Object> entry : afterMap.entrySet()) {
+                    if (!objectEquals(entry.getValue(), beforeMap.get(entry.getKey()))) {
+                        changedAfter.put(entry.getKey(), entry.getValue());
+                    }
+                }
 
                 beforeJson = changedBefore.isEmpty() ? null : objectMapper.writeValueAsString(changedBefore);
                 afterJson = changedAfter.isEmpty() ? null : objectMapper.writeValueAsString(changedAfter);
