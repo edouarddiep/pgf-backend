@@ -44,6 +44,9 @@ public class ArtworkCategory extends BaseEntity {
     @Column(name = "thumbnail_zoom")
     private Integer thumbnailZoom = 100;
 
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     private Set<Artwork> artworks = new HashSet<>();
 }

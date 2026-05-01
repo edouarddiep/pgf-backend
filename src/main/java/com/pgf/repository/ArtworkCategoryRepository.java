@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface ArtworkCategoryRepository extends JpaRepository<ArtworkCategory, Long> {
     Optional<ArtworkCategory> findBySlug(String slug);
-    List<ArtworkCategory> findAllByOrderByNameAsc();
+    List<ArtworkCategory> findAllByOrderByDisplayOrderAscNameAsc();
     boolean existsBySlug(String slug);
     boolean existsByName(String name);
 }

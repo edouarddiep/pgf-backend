@@ -32,5 +32,6 @@ public class ArtworkCategoryDto {
     private Integer thumbnailPositionX;
     private Integer thumbnailPositionY;
     private Integer thumbnailZoom;
+    private Integer displayOrder;
     private Integer artworkCount;
 }

@@ -17,5 +17,6 @@ public interface ArtworkCategoryMapper {
     @Mapping(target = "artworks", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "displayOrder", ignore = true)
     void updateEntityFromDto(ArtworkCategoryDto categoryDto, @MappingTarget ArtworkCategory category);
 }
