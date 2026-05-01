@@ -69,8 +69,18 @@ public class ArtworkCategoryService {
 
         String previousName = existingCategory.getName();
         String previousDescription = existingCategory.getDescription();
+        String existingNameEn = existingCategory.getNameEn();
+        String existingDescriptionEn = existingCategory.getDescriptionEn();
 
         categoryMapper.updateEntityFromDto(categoryDto, existingCategory);
+
+        if (existingCategory.getNameEn() == null) {
+            existingCategory.setNameEn(existingNameEn);
+        }
+        if (existingCategory.getDescriptionEn() == null) {
+            existingCategory.setDescriptionEn(existingDescriptionEn);
+        }
+
         translateChangedFields(previousName, previousDescription, existingCategory);
 
         return categoryMapper.toDto(categoryRepository.save(existingCategory));

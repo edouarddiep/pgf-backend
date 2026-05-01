@@ -81,8 +81,18 @@ public class ExhibitionService {
 
         String previousTitle = existingExhibition.getTitle();
         String previousDescription = existingExhibition.getDescription();
+        String existingTitleEn = existingExhibition.getTitleEn();
+        String existingDescriptionEn = existingExhibition.getDescriptionEn();
 
         exhibitionMapper.updateEntityFromDto(exhibitionDto, existingExhibition);
+
+        if (existingExhibition.getTitleEn() == null) {
+            existingExhibition.setTitleEn(existingTitleEn);
+        }
+        if (existingExhibition.getDescriptionEn() == null) {
+            existingExhibition.setDescriptionEn(existingDescriptionEn);
+        }
+
         calculateAndSetStatus(existingExhibition);
         translateChangedFields(previousTitle, previousDescription, existingExhibition);
 

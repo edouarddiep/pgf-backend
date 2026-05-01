@@ -56,11 +56,22 @@ public class ArchiveService {
 
         String previousTitle = existingArchive.getTitle();
         String previousDescription = existingArchive.getDescription();
+        String existingTitleEn = existingArchive.getTitleEn();
+        String existingDescriptionEn = existingArchive.getDescriptionEn();
 
         archiveMapper.updateEntityFromDto(archiveDto, existingArchive);
+
+        if (existingArchive.getTitleEn() == null) {
+            existingArchive.setTitleEn(existingTitleEn);
+        }
+        if (existingArchive.getDescriptionEn() == null) {
+            existingArchive.setDescriptionEn(existingDescriptionEn);
+        }
+
         if (existingArchive.getFiles() != null) {
             existingArchive.getFiles().forEach(f -> f.setArchive(existingArchive));
         }
+
         translateChangedFields(previousTitle, previousDescription, existingArchive);
 
         return archiveMapper.toDto(archiveRepository.save(existingArchive));

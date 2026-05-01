@@ -14,5 +14,7 @@ public interface ExhibitionMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "titleEn", ignore = true)
+    @Mapping(target = "descriptionEn", ignore = true)
     void updateEntityFromDto(ExhibitionDto exhibitionDto, @MappingTarget Exhibition exhibition);
 }

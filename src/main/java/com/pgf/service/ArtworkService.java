@@ -89,8 +89,17 @@ public class ArtworkService {
 
         String previousTitle = existingArtwork.getTitle();
         String previousDescription = existingArtwork.getDescription();
+        String existingTitleEn = existingArtwork.getTitleEn();
+        String existingDescriptionEn = existingArtwork.getDescriptionEn();
 
         artworkMapper.updateEntityFromDto(artworkDto, existingArtwork);
+
+        if (existingArtwork.getTitleEn() == null) {
+            existingArtwork.setTitleEn(existingTitleEn);
+        }
+        if (existingArtwork.getDescriptionEn() == null) {
+            existingArtwork.setDescriptionEn(existingDescriptionEn);
+        }
 
         if (artworkDto.getCategoryIds() != null) {
             existingArtwork.getCategories().clear();
