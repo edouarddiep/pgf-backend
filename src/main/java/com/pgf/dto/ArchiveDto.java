@@ -12,5 +12,8 @@ public class ArchiveDto {
     private String description;
     private String descriptionEn;
     private String thumbnailUrl;
+    private Integer mainImagePositionX;
+    private Integer mainImagePositionY;
+    private Integer mainImageZoom;
     private List<ArchiveFileDto> files;
 }

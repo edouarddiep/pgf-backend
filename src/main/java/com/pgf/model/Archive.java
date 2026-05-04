@@ -35,6 +35,15 @@ public class Archive extends BaseEntity {
     @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;
 
+    @Column(name = "main_image_position_x")
+    private Integer mainImagePositionX;
+
+    @Column(name = "main_image_position_y")
+    private Integer mainImagePositionY;
+
+    @Column(name = "main_image_zoom")
+    private Integer mainImageZoom;
+
     @OneToMany(mappedBy = "archive", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("fileName ASC")
     private List<ArchiveFile> files = new ArrayList<>();
