@@ -18,6 +18,7 @@ public class ContactMessageService {
 
     private final ContactMessageRepository contactMessageRepository;
     private final ContactMessageMapper contactMessageMapper;
+    private final GmailNotificationService gmailNotificationService;
 
     @Transactional(readOnly = true)
     public List<ContactMessageDto> findAll() {
@@ -60,7 +61,9 @@ public class ContactMessageService {
         message.setIsRead(false);
         message.setStatus(ContactMessage.MessageStatus.NEW);
         ContactMessage savedMessage = contactMessageRepository.save(message);
-        return contactMessageMapper.toDto(savedMessage);
+        ContactMessageDto dto = contactMessageMapper.toDto(savedMessage);
+        gmailNotificationService.sendContactNotification(dto);
+        return dto;
     }
 
     public ContactMessageDto markAsRead(Long id) {
