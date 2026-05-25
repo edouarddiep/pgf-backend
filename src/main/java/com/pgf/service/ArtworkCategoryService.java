@@ -49,7 +49,7 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(category);
     }
 
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)
     public ArtworkCategoryDto create(ArtworkCategoryDto categoryDto) {
         if (categoryRepository.existsBySlug(categoryDto.getSlug())) {
             throw new IllegalArgumentException("Category with slug already exists: " + categoryDto.getSlug());
@@ -62,7 +62,7 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(categoryRepository.save(category));
     }
 
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)
     public ArtworkCategoryDto update(Long id, ArtworkCategoryDto categoryDto) {
         ArtworkCategory existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
@@ -86,7 +86,7 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(categoryRepository.save(existingCategory));
     }
 
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)
     public void delete(Long id) {
         ArtworkCategory category = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));

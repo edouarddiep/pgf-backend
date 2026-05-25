@@ -64,7 +64,7 @@ public class ArtworkService {
                 .toList();
     }
 
-    @CacheEvict(value = "artworks", allEntries = true)
+    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
         if (artworkDto.getCategoryIds() != null && !artworkDto.getCategoryIds().isEmpty()) {
@@ -82,7 +82,7 @@ public class ArtworkService {
         return artworkMapper.toDto(savedArtwork);
     }
 
-    @CacheEvict(value = "artworks", allEntries = true)
+    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
     public ArtworkDto update(Long id, ArtworkDto artworkDto) {
         Artwork existingArtwork = artworkRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
@@ -132,7 +132,7 @@ public class ArtworkService {
         return artworkMapper.toDto(artworkRepository.save(artwork));
     }
 
-    @CacheEvict(value = "artworks", allEntries = true)
+    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
     public void delete(Long id) {
         Artwork artwork = artworkRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Artwork not found with id: " + id));
