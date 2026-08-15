@@ -17,8 +17,4 @@ public interface ExhibitionRepository extends JpaRepository<Exhibition, Long> {
     List<Exhibition> findByStartDateAfterOrderByStartDateAsc(LocalDate date);
 
     List<Exhibition> findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(LocalDate start, LocalDate end);
-
-    List<Exhibition> findByStatusOrderByStartDateAsc(Exhibition.ExhibitionStatus status);
-
-    List<Exhibition> findByStatusOrderByStartDateDesc(Exhibition.ExhibitionStatus status);
 }

@@ -88,13 +88,6 @@ public class ArtworkService {
     }
 
     @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
-    public ArtworkDto updateCategories(Long id, Set<Long> categoryIds) {
-        Artwork artwork = getOrThrow(id);
-        replaceCategories(artwork, resolveCategories(categoryIds));
-        return artworkMapper.toDto(artworkRepository.save(artwork));
-    }
-
-    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
     public void delete(Long id) {
         Artwork artwork = getOrThrow(id);
         if (artwork.getImageUrls() != null) {

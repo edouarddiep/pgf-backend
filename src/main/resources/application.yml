@@ -61,10 +61,6 @@ app:
   upload:
     supabase:
       bucket: "oeuvres"
-      max-width: 2400
-      max-height: 2400
-      jpeg-quality: 0.95
-      thumbnail-size: 400
   admin:
     password: ${ADMIN_PASSWORD}
     notify-email: ${ADMIN_NOTIFY_EMAIL:edouard.diep@gmail.com}

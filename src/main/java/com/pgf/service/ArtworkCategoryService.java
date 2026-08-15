@@ -12,17 +12,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class ArtworkCategoryService {
-
-    private static final String DEFAULT_SLUG = "general";
 
     private final ArtworkCategoryRepository categoryRepository;
     private final ArtworkRepository artworkRepository;
@@ -49,18 +45,6 @@ public class ArtworkCategoryService {
         return categoryRepository.findBySlug(slug)
                 .map(categoryMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with slug: " + slug));
-    }
-
-    @Transactional(readOnly = true)
-    public String resolveSlug(Set<Long> categoryIds) {
-        if (CollectionUtils.isEmpty(categoryIds)) {
-            return DEFAULT_SLUG;
-        }
-        return categoryRepository.findAllById(categoryIds)
-                .stream()
-                .findFirst()
-                .map(ArtworkCategory::getSlug)
-                .orElse(DEFAULT_SLUG);
     }
 
     @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)

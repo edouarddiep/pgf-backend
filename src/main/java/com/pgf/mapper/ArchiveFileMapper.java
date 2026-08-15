@@ -2,7 +2,8 @@ package com.pgf.mapper;
 
 import com.pgf.dto.ArchiveFileDto;
 import com.pgf.model.ArchiveFile;
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ArchiveFileMapper {
@@ -11,10 +12,4 @@ public interface ArchiveFileMapper {
 
     @Mapping(target = "archive", ignore = true)
     ArchiveFile toEntity(ArchiveFileDto archiveFileDto);
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "archive", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    void updateEntityFromDto(ArchiveFileDto dto, @MappingTarget ArchiveFile entity);
 }

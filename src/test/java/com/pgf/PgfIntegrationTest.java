@@ -366,30 +366,6 @@ class PgfIntegrationTest {
     }
 
     @Test
-    void shouldUpdateArtworkCategories() throws Exception {
-        ArtworkDto artwork = new ArtworkDto();
-        artwork.setTitle("Test Artwork for Category Update");
-        artwork.setImageUrls(List.of("https://example.com/image.jpg"));
-        artwork.setMainImageUrl("https://example.com/image.jpg");
-        artwork.setCategoryIds(Set.of(1L));
-
-        String response = mockMvc.perform(post("/api/admin/artworks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(artwork)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-
-        ArtworkDto created = objectMapper.readValue(response, ArtworkDto.class);
-
-        mockMvc.perform(put("/api/admin/artworks/" + created.getId() + "/categories")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Set.of(1L, 2L, 3L))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.categoryIds").isArray())
-                .andExpect(jsonPath("$.categoryIds.length()").value(3));
-    }
-
-    @Test
     void shouldGetArchivesForAdmin() throws Exception {
         mockMvc.perform(get("/api/admin/archives"))
                 .andExpect(status().isOk())
