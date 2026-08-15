@@ -1,6 +1,7 @@
 package com.pgf.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -16,16 +17,20 @@ import java.util.UUID;
 @Slf4j
 public class FileUploadService {
 
-    @Value("${supabase.url}")
-    private String supabaseUrl;
+    private final RestTemplate restTemplate;
+    private final String supabaseUrl;
+    private final String serviceKey;
+    private final String bucketName;
 
-    @Value("${supabase.service-key}")
-    private String serviceKey;
-
-    @Value("${app.upload.supabase.bucket}")
-    private String bucketName;
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    public FileUploadService(@Qualifier("storageRestTemplate") RestTemplate restTemplate,
+                             @Value("${supabase.url}") String supabaseUrl,
+                             @Value("${supabase.service-key}") String serviceKey,
+                             @Value("${app.upload.supabase.bucket}") String bucketName) {
+        this.restTemplate = restTemplate;
+        this.supabaseUrl = supabaseUrl;
+        this.serviceKey = serviceKey;
+        this.bucketName = bucketName;
+    }
 
     public ImageUploadResult uploadImage(MultipartFile file, String categorySlug) throws IOException {
         validateFile(file);

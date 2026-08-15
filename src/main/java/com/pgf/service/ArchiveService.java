@@ -1,5 +1,6 @@
 package com.pgf.service;
 
+import com.pgf.config.CacheConfig;
 import com.pgf.dto.ArchiveDto;
 import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ArchiveMapper;
@@ -22,7 +23,7 @@ public class ArchiveService {
     private final ArchiveMapper archiveMapper;
     private final DeepLService deepLService;
 
-    @Cacheable("archives")
+    @Cacheable(CacheConfig.ARCHIVES)
     @Transactional(readOnly = true)
     public List<ArchiveDto> findAll() {
         return archiveRepository.findAllByOrderByYearDescTitleAsc()
@@ -31,12 +32,15 @@ public class ArchiveService {
                 .toList();
     }
 
+    @Cacheable(value = CacheConfig.ARCHIVE, key = "#id")
     @Transactional(readOnly = true)
     public ArchiveDto findById(Long id) {
-        return archiveMapper.toDto(getOrThrow(id));
+        return archiveRepository.findWithFilesById(id)
+                .map(archiveMapper::toDto)
+                .orElseThrow(() -> notFound(id));
     }
 
-    @CacheEvict(value = "archives", allEntries = true)
+    @CacheEvict(value = {CacheConfig.ARCHIVES, CacheConfig.ARCHIVE}, allEntries = true)
     public ArchiveDto create(ArchiveDto archiveDto) {
         Archive archive = archiveMapper.toEntity(archiveDto);
         linkFiles(archive);
@@ -45,7 +49,7 @@ public class ArchiveService {
         return archiveMapper.toDto(archiveRepository.save(archive));
     }
 
-    @CacheEvict(value = "archives", allEntries = true)
+    @CacheEvict(value = {CacheConfig.ARCHIVES, CacheConfig.ARCHIVE}, allEntries = true)
     public ArchiveDto update(Long id, ArchiveDto archiveDto) {
         Archive archive = getOrThrow(id);
         String previousTitle = archive.getTitle();
@@ -60,14 +64,17 @@ public class ArchiveService {
         return archiveMapper.toDto(archiveRepository.save(archive));
     }
 
-    @CacheEvict(value = "archives", allEntries = true)
+    @CacheEvict(value = {CacheConfig.ARCHIVES, CacheConfig.ARCHIVE}, allEntries = true)
     public void delete(Long id) {
         archiveRepository.delete(getOrThrow(id));
     }
 
     private Archive getOrThrow(Long id) {
-        return archiveRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Archive not found with id: " + id));
+        return archiveRepository.findById(id).orElseThrow(() -> notFound(id));
+    }
+
+    private EntityNotFoundException notFound(Long id) {
+        return new EntityNotFoundException("Archive not found with id: " + id);
     }
 
     private void linkFiles(Archive archive) {

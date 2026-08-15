@@ -1,6 +1,6 @@
 package com.pgf.service;
 
-import com.pgf.model.ArtworkCategory;
+import com.pgf.config.CacheConfig;
 import com.pgf.repository.ArtworkCategoryRepository;
 import com.pgf.repository.ArtworkRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class SitemapService {
     @Value("${app.public-url:https://www.pierrette-gonsethfavre.ch}")
     private String baseUrl;
 
-    @Cacheable("sitemap")
+    @Cacheable(CacheConfig.SITEMAP)
     @Transactional(readOnly = true)
     public String generate() {
         StringBuilder xml = new StringBuilder()
@@ -41,14 +41,12 @@ public class SitemapService {
         appendUrl(xml, "", "1.0", "weekly");
         STATIC_PAGES.forEach(page -> appendLocalized(xml, "/" + page.path(), page.priority(), page.changeFrequency()));
 
-        categoryRepository.findAll()
-                .forEach(category -> appendLocalized(xml, "/artworks/" + category.getSlug(), "0.8", "weekly"));
+        categoryRepository.findAllSlugs()
+                .forEach(slug -> appendLocalized(xml, "/artworks/" + slug, "0.8", "weekly"));
 
-        artworkRepository.findAll().forEach(artwork -> artwork.getCategories()
-                .stream()
-                .findFirst()
-                .map(ArtworkCategory::getSlug)
-                .ifPresent(slug -> appendLocalized(xml, "/artworks/" + slug + "/" + artwork.getId(), "0.7", "monthly")));
+        artworkRepository.findSitemapEntries()
+                .forEach(artwork -> appendLocalized(xml,
+                        "/artworks/" + artwork.getCategorySlug() + "/" + artwork.getId(), "0.7", "monthly"));
 
         return xml.append("</urlset>").toString();
     }

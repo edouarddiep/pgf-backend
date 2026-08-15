@@ -1,5 +1,6 @@
 package com.pgf.service;
 
+import com.pgf.config.CacheConfig;
 import com.pgf.dto.ExhibitionDto;
 import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ExhibitionMapper;
@@ -24,7 +25,7 @@ public class ExhibitionService {
     private final FileUploadService fileUploadService;
     private final DeepLService deepLService;
 
-    @Cacheable("exhibitions")
+    @Cacheable(value = CacheConfig.EXHIBITIONS, key = "T(java.time.LocalDate).now()")
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findAll() {
         return toDtos(exhibitionRepository.findAllByOrderByStartDateDesc());
@@ -35,23 +36,26 @@ public class ExhibitionService {
         return toDto(getOrThrow(id));
     }
 
+    @Cacheable(value = CacheConfig.EXHIBITIONS_BY_STATUS, key = "#root.methodName + ':' + T(java.time.LocalDate).now()")
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findUpcoming() {
         return toDtos(exhibitionRepository.findByStartDateAfterOrderByStartDateAsc(LocalDate.now()));
     }
 
+    @Cacheable(value = CacheConfig.EXHIBITIONS_BY_STATUS, key = "#root.methodName + ':' + T(java.time.LocalDate).now()")
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findOngoing() {
         LocalDate today = LocalDate.now();
         return toDtos(exhibitionRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(today, today));
     }
 
+    @Cacheable(value = CacheConfig.EXHIBITIONS_BY_STATUS, key = "#root.methodName + ':' + T(java.time.LocalDate).now()")
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findPast() {
         return toDtos(exhibitionRepository.findByEndDateBeforeOrderByStartDateDesc(LocalDate.now()));
     }
 
-    @CacheEvict(value = "exhibitions", allEntries = true)
+    @CacheEvict(value = {CacheConfig.EXHIBITIONS, CacheConfig.EXHIBITIONS_BY_STATUS}, allEntries = true)
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
         exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
@@ -59,7 +63,7 @@ public class ExhibitionService {
         return toDto(exhibitionRepository.save(exhibition));
     }
 
-    @CacheEvict(value = "exhibitions", allEntries = true)
+    @CacheEvict(value = {CacheConfig.EXHIBITIONS, CacheConfig.EXHIBITIONS_BY_STATUS}, allEntries = true)
     public ExhibitionDto update(Long id, ExhibitionDto exhibitionDto) {
         Exhibition exhibition = getOrThrow(id);
         String previousTitle = exhibition.getTitle();
@@ -73,7 +77,7 @@ public class ExhibitionService {
         return toDto(exhibitionRepository.save(exhibition));
     }
 
-    @CacheEvict(value = "exhibitions", allEntries = true)
+    @CacheEvict(value = {CacheConfig.EXHIBITIONS, CacheConfig.EXHIBITIONS_BY_STATUS}, allEntries = true)
     public void delete(Long id) {
         Exhibition exhibition = getOrThrow(id);
         deleteMedia(exhibition.getImageUrls());

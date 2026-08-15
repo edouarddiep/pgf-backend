@@ -1,5 +1,6 @@
 package com.pgf.service;
 
+import com.pgf.config.CacheConfig;
 import com.pgf.dto.ArtworkCategoryDto;
 import com.pgf.exception.ConflictException;
 import com.pgf.exception.EntityNotFoundException;
@@ -26,7 +27,7 @@ public class ArtworkCategoryService {
     private final FileUploadService fileUploadService;
     private final DeepLService deepLService;
 
-    @Cacheable("categories")
+    @Cacheable(CacheConfig.CATEGORIES)
     @Transactional(readOnly = true)
     public List<ArtworkCategoryDto> findAll() {
         return categoryRepository.findAllByOrderByDisplayOrderAscNameAsc()
@@ -35,11 +36,13 @@ public class ArtworkCategoryService {
                 .toList();
     }
 
+    @Cacheable(value = CacheConfig.CATEGORY, key = "'id:' + #id")
     @Transactional(readOnly = true)
     public ArtworkCategoryDto findById(Long id) {
         return categoryMapper.toDto(getOrThrow(id));
     }
 
+    @Cacheable(value = CacheConfig.CATEGORY, key = "'slug:' + #slug")
     @Transactional(readOnly = true)
     public ArtworkCategoryDto findBySlug(String slug) {
         return categoryRepository.findBySlug(slug)
@@ -47,7 +50,8 @@ public class ArtworkCategoryService {
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with slug: " + slug));
     }
 
-    @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CATEGORIES, CacheConfig.CATEGORY, CacheConfig.ARTWORKS,
+            CacheConfig.ARTWORK, CacheConfig.ARTWORKS_BY_CATEGORY, CacheConfig.SITEMAP}, allEntries = true)
     public ArtworkCategoryDto create(ArtworkCategoryDto categoryDto) {
         if (categoryRepository.existsBySlug(categoryDto.getSlug())) {
             throw new ConflictException("Une catégorie avec ce slug existe déjà : " + categoryDto.getSlug());
@@ -61,7 +65,8 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(categoryRepository.save(category));
     }
 
-    @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CATEGORIES, CacheConfig.CATEGORY, CacheConfig.ARTWORKS,
+            CacheConfig.ARTWORK, CacheConfig.ARTWORKS_BY_CATEGORY, CacheConfig.SITEMAP}, allEntries = true)
     public ArtworkCategoryDto update(Long id, ArtworkCategoryDto categoryDto) {
         ArtworkCategory category = getOrThrow(id);
         String previousName = category.getName();
@@ -75,7 +80,8 @@ public class ArtworkCategoryService {
         return categoryMapper.toDto(categoryRepository.save(category));
     }
 
-    @CacheEvict(value = {"categories", "sitemap"}, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CATEGORIES, CacheConfig.CATEGORY, CacheConfig.ARTWORKS,
+            CacheConfig.ARTWORK, CacheConfig.ARTWORKS_BY_CATEGORY, CacheConfig.SITEMAP}, allEntries = true)
     public void delete(Long id) {
         ArtworkCategory category = getOrThrow(id);
         long artworkCount = artworkRepository.countByCategoriesContaining(category);

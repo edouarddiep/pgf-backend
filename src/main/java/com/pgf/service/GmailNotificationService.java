@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import jakarta.mail.internet.MimeMessage;
@@ -32,6 +33,7 @@ public class GmailNotificationService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Async
     public void sendApprovalConfirmation(String email, String displayName) {
         String body = "<p>Bonjour <strong>" + displayName + "</strong>,</p>" +
                 "<p>Votre demande d'accès administrateur sur le site PGF a bien été approuvée.</p>" +
@@ -40,6 +42,7 @@ public class GmailNotificationService {
         send(email, "Accès administrateur - Site PGF", wrap(body));
     }
 
+    @Async
     public void sendAdminApprovalRequest(String userId, String email, String displayName) {
         String approveUrl = backendUrl + "/api/admin/auth/approve/" + userId;
         String body = "<p>Une nouvelle demande d'accès administrateur a été soumise.</p>" +
@@ -49,6 +52,7 @@ public class GmailNotificationService {
         send(adminNotifyEmail, "Nouvelle demande d'accès admin — PGF", wrap(body));
     }
 
+    @Async
     public void sendInvitation(String email, String token) {
         String registerUrl = frontendUrl + "/admin/register?token=" + token;
         String body = "<p>Vous avez été invité(e) à rejoindre l'équipe d'administration du site PGF.</p>" +
@@ -58,6 +62,7 @@ public class GmailNotificationService {
         send(email, "Invitation à l'administration du site PGF", wrap(body));
     }
 
+    @Async
     public void sendContactNotification(ContactMessageDto dto) {
         String body = "<p>Un nouveau message de contact a été reçu via le site PGF.</p>" +
                 infoTable(new String[][]{

@@ -1,5 +1,6 @@
 package com.pgf.service;
 
+import com.pgf.config.CacheConfig;
 import com.pgf.dto.ArtworkDto;
 import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ArtworkMapper;
@@ -11,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -32,12 +32,13 @@ public class ArtworkService {
     private final FileUploadService fileUploadService;
     private final DeepLService deepLService;
 
-    @Cacheable("artworks")
+    @Cacheable(CacheConfig.ARTWORKS)
     @Transactional(readOnly = true)
     public List<ArtworkDto> findAll() {
-        return toDtos(artworkRepository.findAll(Sort.by("title").ascending()));
+        return toDtos(artworkRepository.findAllByOrderByTitleAsc());
     }
 
+    @Cacheable(value = CacheConfig.ARTWORK, key = "#id")
     @Transactional(readOnly = true)
     public ArtworkDto findById(Long id) {
         return artworkRepository.findByIdWithCategories(id)
@@ -45,17 +46,20 @@ public class ArtworkService {
                 .orElseThrow(() -> notFound(id));
     }
 
+    @Cacheable(value = CacheConfig.ARTWORKS_BY_CATEGORY, key = "'id:' + #categoryId")
     @Transactional(readOnly = true)
     public List<ArtworkDto> findByCategoryId(Long categoryId) {
         return toDtos(artworkRepository.findByCategoryId(categoryId));
     }
 
+    @Cacheable(value = CacheConfig.ARTWORKS_BY_CATEGORY, key = "'slug:' + #categorySlug")
     @Transactional(readOnly = true)
     public List<ArtworkDto> findByCategorySlug(String categorySlug) {
         return toDtos(artworkRepository.findByCategorySlug(categorySlug));
     }
 
-    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
+    @CacheEvict(value = {CacheConfig.ARTWORKS, CacheConfig.ARTWORK,
+            CacheConfig.ARTWORKS_BY_CATEGORY, CacheConfig.SITEMAP}, allEntries = true)
     public ArtworkDto create(ArtworkDto artworkDto) {
         Artwork artwork = artworkMapper.toEntity(artworkDto);
         artwork.setCategories(resolveCategories(artworkDto.getCategoryIds()));
@@ -67,7 +71,8 @@ public class ArtworkService {
         return artworkMapper.toDto(saved);
     }
 
-    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
+    @CacheEvict(value = {CacheConfig.ARTWORKS, CacheConfig.ARTWORK,
+            CacheConfig.ARTWORKS_BY_CATEGORY, CacheConfig.SITEMAP}, allEntries = true)
     public ArtworkDto update(Long id, ArtworkDto artworkDto) {
         Artwork artwork = getOrThrow(id);
         String previousTitle = artwork.getTitle();
@@ -87,7 +92,8 @@ public class ArtworkService {
         return artworkMapper.toDto(saved);
     }
 
-    @CacheEvict(value = {"artworks", "sitemap"}, allEntries = true)
+    @CacheEvict(value = {CacheConfig.ARTWORKS, CacheConfig.ARTWORK,
+            CacheConfig.ARTWORKS_BY_CATEGORY, CacheConfig.SITEMAP}, allEntries = true)
     public void delete(Long id) {
         Artwork artwork = getOrThrow(id);
         if (artwork.getImageUrls() != null) {
