@@ -37,8 +37,13 @@ public class ArtworkDto {
 
     private String mainImageUrl;
 
+    @Builder.Default
     private Integer mainImagePositionX = 50;
+
+    @Builder.Default
     private Integer mainImagePositionY = 50;
+
+    @Builder.Default
     private Integer mainImageZoom = 100;
 
     @JsonProperty("categoryIds")

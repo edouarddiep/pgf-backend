@@ -13,6 +13,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -28,6 +29,13 @@ public class DeepLService {
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
         this.apiUrl = apiUrl;
+    }
+
+    public String translateIfChanged(String previousSource, String currentSource, String previousTranslation) {
+        if (Objects.equals(previousSource, currentSource)) {
+            return previousTranslation;
+        }
+        return translate(currentSource);
     }
 
     public String translate(String text) {

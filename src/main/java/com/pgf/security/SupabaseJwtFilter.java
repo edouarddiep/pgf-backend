@@ -33,7 +33,7 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        log.info(">>> SupabaseJwtFilter hit: {} {}", request.getMethod(), request.getRequestURI());
+        log.debug("SupabaseJwtFilter hit: {} {}", request.getMethod(), request.getRequestURI());
         String path = request.getRequestURI();
         boolean isProtected = path.startsWith("/api/admin/")
                 && !path.equals("/api/admin/auth/login")
@@ -72,8 +72,7 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "Account pending approval");
                 return;
             }
-            String userId = payload.path("sub").asText();
-            setAuthentication(userId);
+            setAuthentication(resolvePrincipal(payload));
         } catch (Exception e) {
             log.warn("Invalid JWT: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
@@ -98,6 +97,11 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    private String resolvePrincipal(JsonNode payload) {
+        String displayName = payload.path("user_metadata").path("display_name").asText("");
+        return displayName.isBlank() ? payload.path("sub").asText() : displayName;
     }
 
     private void setAuthentication(String principal) {

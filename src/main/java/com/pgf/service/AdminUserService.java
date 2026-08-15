@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pgf.model.AdminUser;
 import com.pgf.repository.AdminUserRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.pgf.exception.ConflictException;
+import com.pgf.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +40,7 @@ public class AdminUserService {
         AdminUser pending = adminUserRepository.findByEmail(email).orElse(null);
 
         if (pending != null && pending.getApproved()) {
-            throw new IllegalArgumentException("Un compte actif existe déjà pour cet e-mail.");
+            throw new ConflictException("Un compte actif existe déjà pour cet e-mail.");
         }
 
         if (pending == null) {
@@ -58,7 +59,7 @@ public class AdminUserService {
 
     public void registerWithToken(String token, String password, String displayName) {
         if (adminUserRepository.existsByDisplayNameIgnoreCase(displayName)) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris.");
+            throw new ConflictException("Ce nom d'utilisateur est déjà pris.");
         }
 
         AdminUser pending = adminUserRepository.findByInvitationToken(token)
@@ -100,7 +101,7 @@ public class AdminUserService {
 
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 422) {
-                throw new IllegalArgumentException("Un compte avec cette adresse e-mail existe déjà.");
+                throw new ConflictException("Un compte avec cette adresse e-mail existe déjà.");
             }
             throw e;
         }

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -48,6 +50,17 @@ public class FileUploadService {
         String imageUrl = uploadToSupabase(file.getBytes(), supabaseFolder + "/images", fileName);
 
         return new ImageUploadResult(imageUrl, imageUrl);
+    }
+
+    public List<String> uploadImages(List<MultipartFile> files, String categorySlug) throws IOException {
+        if (CollectionUtils.isEmpty(files)) {
+            return List.of();
+        }
+        List<String> imageUrls = new ArrayList<>(files.size());
+        for (MultipartFile file : files) {
+            imageUrls.add(uploadImage(file, categorySlug).imageUrl());
+        }
+        return imageUrls;
     }
 
     public ImageUploadResult uploadExhibitionImage(MultipartFile file, String exhibitionSlug, int imageIndex) throws IOException {

@@ -70,7 +70,7 @@ class PgfIntegrationTest {
         newCategory.setDescription("Category for testing");
         newCategory.setSlug("test-category");
 
-        mockMvc.perform(post("/api/categories")
+        mockMvc.perform(post("/api/admin/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newCategory)))
                 .andExpect(status().isCreated())
@@ -119,7 +119,7 @@ class PgfIntegrationTest {
         newArtwork.setMainImageUrl("https://example.com/image1.jpg");
         newArtwork.setCategoryIds(Set.of(1L));
 
-        mockMvc.perform(post("/api/artworks")
+        mockMvc.perform(post("/api/admin/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newArtwork)))
                 .andExpect(status().isCreated())
@@ -138,7 +138,7 @@ class PgfIntegrationTest {
         newArtwork.setMainImageUrl("https://example.com/image1.jpg");
         newArtwork.setCategoryIds(Set.of(1L, 2L));
 
-        mockMvc.perform(post("/api/artworks")
+        mockMvc.perform(post("/api/admin/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newArtwork)))
                 .andExpect(status().isCreated())
@@ -149,7 +149,7 @@ class PgfIntegrationTest {
 
     @Test
     void shouldValidateRequiredFieldsForNewArtwork() throws Exception {
-        mockMvc.perform(post("/api/artworks")
+        mockMvc.perform(post("/api/admin/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ArtworkDto())))
                 .andExpect(status().isBadRequest());
@@ -163,7 +163,7 @@ class PgfIntegrationTest {
         artworkWithoutCategories.setImageUrls(List.of("https://example.com/image.jpg"));
         artworkWithoutCategories.setCategoryIds(Set.of());
 
-        mockMvc.perform(post("/api/artworks")
+        mockMvc.perform(post("/api/admin/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(artworkWithoutCategories)))
                 .andExpect(status().isBadRequest());
@@ -205,7 +205,7 @@ class PgfIntegrationTest {
         newExhibition.setEndDate(LocalDate.now().plusDays(60));
         newExhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
 
-        mockMvc.perform(post("/api/exhibitions")
+        mockMvc.perform(post("/api/admin/exhibitions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newExhibition)))
                 .andExpect(status().isCreated())
@@ -240,7 +240,7 @@ class PgfIntegrationTest {
         dto.setThumbnailUrl("https://example.com/thumb.jpg");
         dto.setFiles(List.of());
 
-        mockMvc.perform(post("/api/archives")
+        mockMvc.perform(post("/api/admin/archives")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -256,7 +256,7 @@ class PgfIntegrationTest {
         dto.setThumbnailUrl("https://example.com/thumb.jpg");
         dto.setFiles(List.of());
 
-        String response = mockMvc.perform(post("/api/archives")
+        String response = mockMvc.perform(post("/api/admin/archives")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -373,7 +373,7 @@ class PgfIntegrationTest {
         artwork.setMainImageUrl("https://example.com/image.jpg");
         artwork.setCategoryIds(Set.of(1L));
 
-        String response = mockMvc.perform(post("/api/artworks")
+        String response = mockMvc.perform(post("/api/admin/artworks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(artwork)))
                 .andExpect(status().isCreated())

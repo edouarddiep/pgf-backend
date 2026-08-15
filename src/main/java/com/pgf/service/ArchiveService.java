@@ -1,10 +1,10 @@
 package com.pgf.service;
 
 import com.pgf.dto.ArchiveDto;
+import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ArchiveMapper;
 import com.pgf.model.Archive;
 import com.pgf.repository.ArchiveRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -12,8 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -34,68 +32,47 @@ public class ArchiveService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<ArchiveDto> findById(Long id) {
-        return archiveRepository.findById(id)
-                .map(archiveMapper::toDto);
+    public ArchiveDto findById(Long id) {
+        return archiveMapper.toDto(getOrThrow(id));
     }
 
     @CacheEvict(value = "archives", allEntries = true)
     public ArchiveDto create(ArchiveDto archiveDto) {
         Archive archive = archiveMapper.toEntity(archiveDto);
-        if (archive.getFiles() != null) {
-            archive.getFiles().forEach(f -> f.setArchive(archive));
-        }
-        translateAllFields(archive);
+        linkFiles(archive);
+        archive.setTitleEn(deepLService.translate(archive.getTitle()));
+        archive.setDescriptionEn(deepLService.translate(archive.getDescription()));
         return archiveMapper.toDto(archiveRepository.save(archive));
     }
 
     @CacheEvict(value = "archives", allEntries = true)
     public ArchiveDto update(Long id, ArchiveDto archiveDto) {
-        Archive existingArchive = archiveRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Archive not found with id: " + id));
+        Archive archive = getOrThrow(id);
+        String previousTitle = archive.getTitle();
+        String previousDescription = archive.getDescription();
 
-        String previousTitle = existingArchive.getTitle();
-        String previousDescription = existingArchive.getDescription();
-        String existingTitleEn = existingArchive.getTitleEn();
-        String existingDescriptionEn = existingArchive.getDescriptionEn();
+        archiveMapper.updateEntityFromDto(archiveDto, archive);
+        linkFiles(archive);
 
-        archiveMapper.updateEntityFromDto(archiveDto, existingArchive);
+        archive.setTitleEn(deepLService.translateIfChanged(previousTitle, archive.getTitle(), archive.getTitleEn()));
+        archive.setDescriptionEn(deepLService.translateIfChanged(previousDescription, archive.getDescription(), archive.getDescriptionEn()));
 
-        if (existingArchive.getTitleEn() == null) {
-            existingArchive.setTitleEn(existingTitleEn);
-        }
-        if (existingArchive.getDescriptionEn() == null) {
-            existingArchive.setDescriptionEn(existingDescriptionEn);
-        }
-
-        if (existingArchive.getFiles() != null) {
-            existingArchive.getFiles().forEach(f -> f.setArchive(existingArchive));
-        }
-
-        translateChangedFields(previousTitle, previousDescription, existingArchive);
-
-        return archiveMapper.toDto(archiveRepository.save(existingArchive));
+        return archiveMapper.toDto(archiveRepository.save(archive));
     }
 
     @CacheEvict(value = "archives", allEntries = true)
     public void delete(Long id) {
-        if (!archiveRepository.existsById(id)) {
-            throw new EntityNotFoundException("Archive not found with id: " + id);
-        }
-        archiveRepository.deleteById(id);
+        archiveRepository.delete(getOrThrow(id));
     }
 
-    private void translateAllFields(Archive archive) {
-        archive.setTitleEn(deepLService.translate(archive.getTitle()));
-        archive.setDescriptionEn(deepLService.translate(archive.getDescription()));
+    private Archive getOrThrow(Long id) {
+        return archiveRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Archive not found with id: " + id));
     }
 
-    private void translateChangedFields(String previousTitle, String previousDescription, Archive archive) {
-        if (!Objects.equals(previousTitle, archive.getTitle())) {
-            archive.setTitleEn(deepLService.translate(archive.getTitle()));
-        }
-        if (!Objects.equals(previousDescription, archive.getDescription())) {
-            archive.setDescriptionEn(deepLService.translate(archive.getDescription()));
+    private void linkFiles(Archive archive) {
+        if (archive.getFiles() != null) {
+            archive.getFiles().forEach(file -> file.setArchive(archive));
         }
     }
 }

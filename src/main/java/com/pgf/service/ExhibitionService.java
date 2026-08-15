@@ -1,10 +1,10 @@
 package com.pgf.service;
 
 import com.pgf.dto.ExhibitionDto;
+import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ExhibitionMapper;
 import com.pgf.model.Exhibition;
 import com.pgf.repository.ExhibitionRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -13,8 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -23,126 +21,97 @@ public class ExhibitionService {
 
     private final ExhibitionRepository exhibitionRepository;
     private final ExhibitionMapper exhibitionMapper;
-    private final FileUploadService imageService;
+    private final FileUploadService fileUploadService;
     private final DeepLService deepLService;
 
     @Cacheable("exhibitions")
     @Transactional(readOnly = true)
     public List<ExhibitionDto> findAll() {
-        return exhibitionRepository.findAllByOrderByStartDateDesc()
-                .stream()
-                .map(this::mapWithCalculatedStatus)
-                .toList();
+        return toDtos(exhibitionRepository.findAllByOrderByStartDateDesc());
     }
 
     @Transactional(readOnly = true)
-    public Optional<ExhibitionDto> findById(Long id) {
-        return exhibitionRepository.findById(id)
-                .map(this::mapWithCalculatedStatus);
+    public ExhibitionDto findById(Long id) {
+        return toDto(getOrThrow(id));
     }
 
     @Transactional(readOnly = true)
-    public List<ExhibitionDto> findUpcomingExhibitions() {
-        return exhibitionRepository.findByStartDateAfterOrderByStartDateAsc(LocalDate.now())
-                .stream()
-                .map(this::mapWithCalculatedStatus)
-                .toList();
+    public List<ExhibitionDto> findUpcoming() {
+        return toDtos(exhibitionRepository.findByStartDateAfterOrderByStartDateAsc(LocalDate.now()));
     }
 
     @Transactional(readOnly = true)
-    public List<ExhibitionDto> findOngoingExhibitions() {
-        return exhibitionRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(
-                        LocalDate.now(), LocalDate.now())
-                .stream()
-                .map(this::mapWithCalculatedStatus)
-                .toList();
+    public List<ExhibitionDto> findOngoing() {
+        LocalDate today = LocalDate.now();
+        return toDtos(exhibitionRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(today, today));
     }
 
     @Transactional(readOnly = true)
-    public List<ExhibitionDto> findPastExhibitions() {
-        return exhibitionRepository.findByEndDateBeforeOrderByStartDateDesc(LocalDate.now())
-                .stream()
-                .map(this::mapWithCalculatedStatus)
-                .toList();
+    public List<ExhibitionDto> findPast() {
+        return toDtos(exhibitionRepository.findByEndDateBeforeOrderByStartDateDesc(LocalDate.now()));
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
-        calculateAndSetStatus(exhibition);
-        translateAllFields(exhibition);
-        return mapWithCalculatedStatus(exhibitionRepository.save(exhibition));
+        exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
+        exhibition.setDescriptionEn(deepLService.translate(exhibition.getDescription()));
+        return toDto(exhibitionRepository.save(exhibition));
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
     public ExhibitionDto update(Long id, ExhibitionDto exhibitionDto) {
-        Exhibition existingExhibition = exhibitionRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
+        Exhibition exhibition = getOrThrow(id);
+        String previousTitle = exhibition.getTitle();
+        String previousDescription = exhibition.getDescription();
 
-        String previousTitle = existingExhibition.getTitle();
-        String previousDescription = existingExhibition.getDescription();
-        String existingTitleEn = existingExhibition.getTitleEn();
-        String existingDescriptionEn = existingExhibition.getDescriptionEn();
+        exhibitionMapper.updateEntityFromDto(exhibitionDto, exhibition);
 
-        exhibitionMapper.updateEntityFromDto(exhibitionDto, existingExhibition);
+        exhibition.setTitleEn(deepLService.translateIfChanged(previousTitle, exhibition.getTitle(), exhibition.getTitleEn()));
+        exhibition.setDescriptionEn(deepLService.translateIfChanged(previousDescription, exhibition.getDescription(), exhibition.getDescriptionEn()));
 
-        if (existingExhibition.getTitleEn() == null) {
-            existingExhibition.setTitleEn(existingTitleEn);
-        }
-        if (existingExhibition.getDescriptionEn() == null) {
-            existingExhibition.setDescriptionEn(existingDescriptionEn);
-        }
-
-        calculateAndSetStatus(existingExhibition);
-        translateChangedFields(previousTitle, previousDescription, existingExhibition);
-
-        return mapWithCalculatedStatus(exhibitionRepository.save(existingExhibition));
+        return toDto(exhibitionRepository.save(exhibition));
     }
 
     @CacheEvict(value = "exhibitions", allEntries = true)
     public void delete(Long id) {
-        Exhibition exhibition = exhibitionRepository.findById(id)
+        Exhibition exhibition = getOrThrow(id);
+        deleteMedia(exhibition.getImageUrls());
+        deleteMedia(exhibition.getVideoUrls());
+        exhibitionRepository.delete(exhibition);
+    }
+
+    private Exhibition getOrThrow(Long id) {
+        return exhibitionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
-        if (exhibition.getImageUrls() != null) {
-            exhibition.getImageUrls().forEach(imageService::deleteImage);
-        }
-        if (exhibition.getVideoUrls() != null) {
-            exhibition.getVideoUrls().forEach(imageService::deleteImage);
-        }
-        exhibitionRepository.deleteById(id);
     }
 
-    private void translateAllFields(Exhibition exhibition) {
-        exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
-        exhibition.setDescriptionEn(deepLService.translate(exhibition.getDescription()));
-    }
-
-    private void translateChangedFields(String previousTitle, String previousDescription, Exhibition exhibition) {
-        if (!Objects.equals(previousTitle, exhibition.getTitle())) {
-            exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
-        }
-        if (!Objects.equals(previousDescription, exhibition.getDescription())) {
-            exhibition.setDescriptionEn(deepLService.translate(exhibition.getDescription()));
+    private void deleteMedia(List<String> urls) {
+        if (urls != null) {
+            urls.forEach(fileUploadService::deleteImage);
         }
     }
 
-    private ExhibitionDto mapWithCalculatedStatus(Exhibition exhibition) {
-        calculateAndSetStatus(exhibition);
+    private List<ExhibitionDto> toDtos(List<Exhibition> exhibitions) {
+        return exhibitions.stream().map(this::toDto).toList();
+    }
+
+    private ExhibitionDto toDto(Exhibition exhibition) {
+        exhibition.setStatus(resolveStatus(exhibition));
         return exhibitionMapper.toDto(exhibition);
     }
 
-    private void calculateAndSetStatus(Exhibition exhibition) {
-        if (exhibition.getStartDate() == null) {
-            exhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
-            return;
-        }
+    private Exhibition.ExhibitionStatus resolveStatus(Exhibition exhibition) {
+        LocalDate startDate = exhibition.getStartDate();
+        LocalDate endDate = exhibition.getEndDate();
         LocalDate today = LocalDate.now();
-        if (today.isBefore(exhibition.getStartDate())) {
-            exhibition.setStatus(Exhibition.ExhibitionStatus.UPCOMING);
-        } else if (exhibition.getEndDate() != null && today.isAfter(exhibition.getEndDate())) {
-            exhibition.setStatus(Exhibition.ExhibitionStatus.PAST);
-        } else {
-            exhibition.setStatus(Exhibition.ExhibitionStatus.ONGOING);
+
+        if (startDate == null || today.isBefore(startDate)) {
+            return Exhibition.ExhibitionStatus.UPCOMING;
         }
+        if (endDate != null && today.isAfter(endDate)) {
+            return Exhibition.ExhibitionStatus.PAST;
+        }
+        return Exhibition.ExhibitionStatus.ONGOING;
     }
 }
