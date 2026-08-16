@@ -35,7 +35,13 @@ public class ArtworkDto {
 
     private List<String> imageUrls;
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private List<String> imageSrcsets;
+
     private String mainImageUrl;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String mainImageSrcset;
 
     @Builder.Default
     private Integer mainImagePositionX = 50;

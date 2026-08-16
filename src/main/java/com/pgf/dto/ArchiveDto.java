@@ -1,5 +1,6 @@
 package com.pgf.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.util.List;
 
@@ -12,6 +13,10 @@ public class ArchiveDto {
     private String description;
     private String descriptionEn;
     private String thumbnailUrl;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String thumbnailSrcset;
+
     private Integer mainImagePositionX;
     private Integer mainImagePositionY;
     private Integer mainImageZoom;

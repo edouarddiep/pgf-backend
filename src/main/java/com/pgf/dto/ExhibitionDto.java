@@ -1,5 +1,6 @@
 package com.pgf.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.pgf.model.Exhibition;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -31,7 +32,13 @@ public class ExhibitionDto {
 
     private String imageUrl;
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String imageSrcset;
+
     private List<String> imageUrls;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private List<String> imageSrcsets;
 
     private List<String> videoUrls;
 

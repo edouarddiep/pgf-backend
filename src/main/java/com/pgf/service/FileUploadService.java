@@ -17,6 +17,9 @@ import java.util.UUID;
 @Slf4j
 public class FileUploadService {
 
+    private static final String IMMUTABLE_CACHE_CONTROL = "max-age=31536000, immutable";
+    private static final String OVERWRITABLE_CACHE_CONTROL = "max-age=3600";
+
     private final RestTemplate restTemplate;
     private final String supabaseUrl;
     private final String serviceKey;
@@ -37,7 +40,7 @@ public class FileUploadService {
 
         String supabaseFolder = mapCategoryToSupabaseFolder(categorySlug);
         String fileName = generateFileName(file.getOriginalFilename(), categorySlug);
-        String imageUrl = uploadToSupabase(file.getBytes(), supabaseFolder + "/images", fileName);
+        String imageUrl = uploadToSupabase(file.getBytes(), supabaseFolder + "/images", fileName, IMMUTABLE_CACHE_CONTROL);
 
         return new ImageUploadResult(imageUrl, imageUrl);
     }
@@ -47,7 +50,7 @@ public class FileUploadService {
 
         String fileName = String.format("image-%d.jpg", imageIndex);
         String folder = "expositions/" + exhibitionSlug + "/images";
-        String imageUrl = uploadToSupabase(file.getBytes(), folder, fileName);
+        String imageUrl = uploadToSupabase(file.getBytes(), folder, fileName, OVERWRITABLE_CACHE_CONTROL);
 
         return new ImageUploadResult(imageUrl, null);
     }
@@ -69,12 +72,13 @@ public class FileUploadService {
         };
     }
 
-    private String uploadToSupabase(byte[] imageData, String folder, String fileName) throws IOException {
+    private String uploadToSupabase(byte[] imageData, String folder, String fileName, String cacheControl) throws IOException {
         String filePath = folder + "/" + fileName;
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + serviceKey);
         headers.set("x-upsert", "true");
+        headers.setCacheControl(cacheControl);
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         headers.setContentLength(imageData.length);
 
@@ -156,7 +160,7 @@ public class FileUploadService {
         String ext = originalFilename.contains(".") ? originalFilename.substring(originalFilename.lastIndexOf('.')) : ".mp4";
         String fileName = String.format("video-%d%s", videoIndex, ext);
         String folder = "expositions/" + exhibitionSlug + "/videos";
-        String videoUrl = uploadToSupabase(file.getBytes(), folder, fileName);
+        String videoUrl = uploadToSupabase(file.getBytes(), folder, fileName, OVERWRITABLE_CACHE_CONTROL);
         return new VideoUploadResult(videoUrl);
     }
 
@@ -183,6 +187,7 @@ public class FileUploadService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + serviceKey);
         headers.set("x-upsert", "true");
+        headers.setCacheControl(IMMUTABLE_CACHE_CONTROL);
         headers.setContentType(MediaType.parseMediaType(
                 file.getContentType() != null ? file.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE
         ));

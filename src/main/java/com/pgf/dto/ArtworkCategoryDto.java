@@ -1,5 +1,6 @@
 package com.pgf.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,10 @@ public class ArtworkCategoryDto {
     private String slug;
 
     private String thumbnailUrl;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String thumbnailSrcset;
+
     private Integer thumbnailPositionX;
     private Integer thumbnailPositionY;
     private Integer thumbnailZoom;

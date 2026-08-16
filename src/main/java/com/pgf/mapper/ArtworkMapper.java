@@ -3,18 +3,21 @@ package com.pgf.mapper;
 import com.pgf.dto.ArtworkDto;
 import com.pgf.model.Artwork;
 import com.pgf.model.ArtworkCategory;
+import com.pgf.util.SupabaseImageUrls;
 import org.mapstruct.*;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", imports = SupabaseImageUrls.class)
 public interface ArtworkMapper {
 
     @Mapping(target = "categoryIds", expression = "java(mapCategoryIds(artwork))")
     @Mapping(target = "categoryNames", expression = "java(mapCategoryNames(artwork))")
     @Mapping(target = "categorySlugs", expression = "java(mapCategorySlugs(artwork))")
+    @Mapping(target = "mainImageSrcset", expression = "java(SupabaseImageUrls.srcSet(artwork.getMainImageUrl()))")
+    @Mapping(target = "imageSrcsets", expression = "java(SupabaseImageUrls.srcSets(artwork.getImageUrls()))")
     ArtworkDto toDto(Artwork artwork);
 
     default Set<Long> mapCategoryIds(Artwork artwork) {
