@@ -1,6 +1,9 @@
 package com.pgf.controller;
 
 import com.pgf.dto.ExhibitionDto;
+import com.pgf.dto.ExhibitionFileDto;
+import com.pgf.model.ExhibitionFile;
+import com.pgf.service.ExhibitionFileService;
 import com.pgf.service.ExhibitionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -19,6 +23,7 @@ import java.util.List;
 public class ExhibitionController {
 
     private final ExhibitionService exhibitionService;
+    private final ExhibitionFileService exhibitionFileService;
 
     @GetMapping
     @Operation(summary = "Get all exhibitions")
@@ -30,6 +35,13 @@ public class ExhibitionController {
     @Operation(summary = "Get exhibition by ID")
     public ExhibitionDto findById(@PathVariable Long id) {
         return exhibitionService.findById(id);
+    }
+
+    @GetMapping("/{id}/files")
+    @Operation(summary = "Get exhibition files, optionally filtered by media type")
+    public List<ExhibitionFileDto> findFiles(@PathVariable Long id,
+                                             @RequestParam(required = false) ExhibitionFile.MediaType mediaType) {
+        return exhibitionFileService.findAll(id, mediaType);
     }
 
     @GetMapping("/upcoming")

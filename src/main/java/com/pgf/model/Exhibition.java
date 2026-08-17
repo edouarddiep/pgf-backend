@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -59,6 +60,10 @@ public class Exhibition extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ExhibitionStatus status = ExhibitionStatus.UPCOMING;
+
+    @OneToMany(mappedBy = "exhibition", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC, id ASC")
+    private List<ExhibitionFile> files = new ArrayList<>();
 
     public enum ExhibitionStatus {
         UPCOMING,

@@ -5,6 +5,7 @@ import com.pgf.dto.ExhibitionDto;
 import com.pgf.exception.EntityNotFoundException;
 import com.pgf.mapper.ExhibitionMapper;
 import com.pgf.model.Exhibition;
+import com.pgf.model.ExhibitionFile;
 import com.pgf.repository.ExhibitionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -58,6 +59,7 @@ public class ExhibitionService {
     @CacheEvict(value = {CacheConfig.EXHIBITIONS, CacheConfig.EXHIBITIONS_BY_STATUS}, allEntries = true)
     public ExhibitionDto create(ExhibitionDto exhibitionDto) {
         Exhibition exhibition = exhibitionMapper.toEntity(exhibitionDto);
+        linkFiles(exhibition);
         exhibition.setTitleEn(deepLService.translate(exhibition.getTitle()));
         exhibition.setDescriptionEn(deepLService.translate(exhibition.getDescription()));
         return toDto(exhibitionRepository.save(exhibition));
@@ -82,17 +84,33 @@ public class ExhibitionService {
         Exhibition exhibition = getOrThrow(id);
         deleteMedia(exhibition.getImageUrls());
         deleteMedia(exhibition.getVideoUrls());
+        deleteMedia(exhibition.getFiles().stream().map(ExhibitionFile::getFileUrl).toList());
         exhibitionRepository.delete(exhibition);
     }
 
     private Exhibition getOrThrow(Long id) {
-        return exhibitionRepository.findById(id)
+        return exhibitionRepository.findWithFilesById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Exhibition not found with id: " + id));
     }
 
     private void deleteMedia(List<String> urls) {
         if (urls != null) {
             urls.forEach(fileUploadService::deleteImage);
+        }
+    }
+
+    private void linkFiles(Exhibition exhibition) {
+        List<ExhibitionFile> files = exhibition.getFiles();
+        if (files == null) {
+            return;
+        }
+        for (int index = 0; index < files.size(); index++) {
+            ExhibitionFile file = files.get(index);
+            file.setExhibition(exhibition);
+            file.applyFileTypeDefault();
+            if (file.getDisplayOrder() == null) {
+                file.setDisplayOrder(index);
+            }
         }
     }
 

@@ -5,7 +5,7 @@ import com.pgf.model.Exhibition;
 import com.pgf.util.SupabaseImageUrls;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring", imports = SupabaseImageUrls.class)
+@Mapper(componentModel = "spring", uses = ExhibitionFileMapper.class, imports = SupabaseImageUrls.class)
 public interface ExhibitionMapper {
 
     @Mapping(target = "imageSrcset", expression = "java(SupabaseImageUrls.srcSet(exhibition.getImageUrl()))")
@@ -19,5 +19,6 @@ public interface ExhibitionMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "titleEn", ignore = true)
     @Mapping(target = "descriptionEn", ignore = true)
+    @Mapping(target = "files", ignore = true)
     void updateEntityFromDto(ExhibitionDto exhibitionDto, @MappingTarget Exhibition exhibition);
 }

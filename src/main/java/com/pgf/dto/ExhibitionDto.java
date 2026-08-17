@@ -42,6 +42,8 @@ public class ExhibitionDto {
 
     private List<String> videoUrls;
 
+    private List<ExhibitionFileDto> files;
+
     private Exhibition.ExhibitionStatus status;
 
     private LocalDateTime createdAt;

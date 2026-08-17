@@ -17,6 +17,8 @@ import java.util.UUID;
 @Slf4j
 public class FileUploadService {
 
+    private static final long MAX_IMAGE_SIZE = 50L * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 500L * 1024 * 1024;
     private static final String IMMUTABLE_CACHE_CONTROL = "max-age=31536000, immutable";
     private static final String OVERWRITABLE_CACHE_CONTROL = "max-age=3600";
 
@@ -144,7 +146,7 @@ public class FileUploadService {
             throw new IllegalArgumentException("File is empty");
         }
 
-        if (file.getSize() > 50 * 1024 * 1024) {
+        if (file.getSize() > MAX_IMAGE_SIZE) {
             throw new IllegalArgumentException("File too large");
         }
 
@@ -169,7 +171,7 @@ public class FileUploadService {
             throw new IllegalArgumentException("File is empty");
         }
 
-        if (file.getSize() > 500 * 1024 * 1024) {
+        if (file.getSize() > MAX_FILE_SIZE) {
             throw new IllegalArgumentException("Video too large (max 500MB)");
         }
 
@@ -179,7 +181,13 @@ public class FileUploadService {
         }
     }
 
-    public String uploadFile(MultipartFile file, String folder) throws IOException {
+    public FileUploadResult uploadExhibitionFile(MultipartFile file, String exhibitionSlug) throws IOException {
+        return uploadFile(file, "expositions/" + exhibitionSlug + "/medias");
+    }
+
+    public FileUploadResult uploadFile(MultipartFile file, String folder) throws IOException {
+        validateAnyFile(file);
+
         String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String fileName = timestamp + "_" + UUID.randomUUID().toString().substring(0, 8) + "_" + sanitizeFilename(originalFilename);
@@ -200,12 +208,27 @@ public class FileUploadService {
             throw new IOException("Upload failed: " + response.getStatusCode());
         }
 
-        return String.format("%s/storage/v1/object/public/%s/%s/%s", supabaseUrl, bucketName, folder, fileName);
+        String fileUrl = String.format("%s/storage/v1/object/public/%s/%s/%s", supabaseUrl, bucketName, folder, fileName);
+        log.info("File uploaded to Supabase: {}", fileUrl);
+
+        return new FileUploadResult(fileUrl, originalFilename, file.getContentType(), file.getSize());
+    }
+
+    private void validateAnyFile(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("File too large (max 500MB)");
+        }
     }
 
     private String sanitizeFilename(String filename) {
         return filename.replaceAll("[^a-zA-Z0-9.\\-_]", "_");
     }
+
+    public record FileUploadResult(String fileUrl, String fileName, String mimeType, long fileSize) {}
 
     public record VideoUploadResult(String videoUrl) {}
 

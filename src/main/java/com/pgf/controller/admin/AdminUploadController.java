@@ -1,5 +1,6 @@
 package com.pgf.controller.admin;
 
+import com.pgf.model.ExhibitionFile;
 import com.pgf.service.FileUploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,7 +64,14 @@ public class AdminUploadController {
     @Operation(summary = "Upload a raw file (PDF, audio, video) without processing")
     public FileUploadResponse uploadFile(@RequestParam("file") MultipartFile file,
                                           @RequestParam(value = "folder", defaultValue = "archives") String folder) throws IOException {
-        return new FileUploadResponse(fileUploadService.uploadFile(file, folder));
+        return FileUploadResponse.of(fileUploadService.uploadFile(file, folder));
+    }
+
+    @PostMapping("/exhibition-file")
+    @Operation(summary = "Upload any exhibition media (press article, interview, video, photo, document)")
+    public FileUploadResponse uploadExhibitionFile(@RequestParam("file") MultipartFile file,
+                                                    @RequestParam("exhibitionSlug") String exhibitionSlug) throws IOException {
+        return FileUploadResponse.of(fileUploadService.uploadExhibitionFile(file, exhibitionSlug));
     }
 
     public record ImageUploadResponse(String imageUrl, String thumbnailUrl) {
@@ -75,5 +83,11 @@ public class AdminUploadController {
 
     public record VideoUploadResponse(String videoUrl) {}
 
-    public record FileUploadResponse(String fileUrl) {}
+    public record FileUploadResponse(String fileUrl, String fileName, String mimeType, long fileSize, ExhibitionFile.FileType fileType) {
+
+        static FileUploadResponse of(FileUploadService.FileUploadResult result) {
+            return new FileUploadResponse(result.fileUrl(), result.fileName(), result.mimeType(), result.fileSize(),
+                    ExhibitionFile.FileType.fromMimeType(result.mimeType()));
+        }
+    }
 }
