@@ -28,7 +28,7 @@ public class AdminUserService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final AdminUserRepository adminUserRepository;
-    private final GmailNotificationService gmailNotificationService;
+    private final MailNotificationService mailNotificationService;
 
     @Value("${supabase.url}")
     private String supabaseUrl;
@@ -54,7 +54,7 @@ public class AdminUserService {
         pending.setInvitationSentAt(LocalDateTime.now());
         adminUserRepository.save(pending);
 
-        gmailNotificationService.sendInvitation(email, token);
+        mailNotificationService.sendInvitation(email, token);
     }
 
     public void registerWithToken(String token, String password, String displayName) {
@@ -97,7 +97,7 @@ public class AdminUserService {
             adminUser.setDisplayName(displayName);
             adminUserRepository.save(adminUser);
 
-            gmailNotificationService.sendAdminApprovalRequest(adminUser.getId().toString(), email, displayName);
+            mailNotificationService.sendAdminApprovalRequest(adminUser.getId().toString(), email, displayName);
 
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 422) {
@@ -127,7 +127,7 @@ public class AdminUserService {
         adminUser.setApprovedAt(LocalDateTime.now());
         adminUserRepository.save(adminUser);
 
-        gmailNotificationService.sendApprovalConfirmation(adminUser.getEmail(), adminUser.getDisplayName());
+        mailNotificationService.sendApprovalConfirmation(adminUser.getEmail(), adminUser.getDisplayName());
         log.info("Admin user approved: {}", userId);
     }
 

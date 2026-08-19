@@ -18,7 +18,7 @@ public class ContactMessageService {
 
     private final ContactMessageRepository contactMessageRepository;
     private final ContactMessageMapper contactMessageMapper;
-    private final GmailNotificationService gmailNotificationService;
+    private final MailNotificationService mailNotificationService;
 
     @Transactional(readOnly = true)
     public List<ContactMessageDto> findAll() {
@@ -39,7 +39,7 @@ public class ContactMessageService {
         message.setStatus(ContactMessage.MessageStatus.NEW);
 
         ContactMessageDto created = contactMessageMapper.toDto(contactMessageRepository.save(message));
-        gmailNotificationService.sendContactNotification(created);
+        mailNotificationService.sendContactNotification(created);
         return created;
     }
 
