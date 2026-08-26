@@ -45,6 +45,8 @@ public class ExhibitionFileDto {
 
     private String source;
 
+    private String sourceUrl;
+
     private LocalDate publishedOn;
 
     private Integer displayOrder;

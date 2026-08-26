@@ -59,6 +59,9 @@ public class ExhibitionFile extends BaseEntity {
     @Column(name = "source")
     private String source;
 
+    @Column(name = "source_url", columnDefinition = "TEXT")
+    private String sourceUrl;
+
     @Column(name = "published_on")
     private LocalDate publishedOn;
 
