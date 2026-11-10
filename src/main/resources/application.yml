@@ -73,6 +73,10 @@ app:
   contact:
     notify-email: ${CONTACT_NOTIFY_EMAIL:pierrette@gonsethfavre.ch}
     notify-bcc: ${CONTACT_NOTIFY_BCC:edouard.diep@gmail.com,lydie.diep@gmail.com}
+  deploy:
+    # Vide = aucun rebuild (développement local). En production : le Deploy Hook Vercel.
+    hook-url: ${VERCEL_DEPLOY_HOOK_URL:}
+    debounce: ${VERCEL_DEPLOY_DEBOUNCE:2m}
   backend-url: ${APP_BACKEND_URL:http://localhost:8080}
   frontend-url: ${APP_FRONTEND_URL:http://localhost:4200}
   cors:
